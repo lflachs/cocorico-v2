@@ -39,11 +39,26 @@ export function QuickSales() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // TODO: Implement API calls when dishes/sales endpoints are ready
-      // const dishesRes = await fetch('/api/dishes');
-      // const salesRes = await fetch('/api/sales/today');
-      setDishes([]);
-      setTodaySales([]);
+      // Import actions dynamically to avoid server/client boundary issues
+      const { getDishesAction } = await import('@/lib/actions/dish.actions');
+      const { getTodaysSalesSummaryAction } = await import('@/lib/actions/sale.actions');
+
+      // Fetch active dishes
+      const dishesResult = await getDishesAction({ isActive: true });
+      if (dishesResult.success && dishesResult.data) {
+        setDishes(dishesResult.data);
+      }
+
+      // Fetch today's sales summary
+      const salesResult = await getTodaysSalesSummaryAction();
+      if (salesResult.success && salesResult.data) {
+        const summary = salesResult.data.topDishes.map(dish => ({
+          dishId: dish.dishId,
+          dishName: dish.dishName,
+          totalSold: dish.totalQuantity,
+        }));
+        setTodaySales(summary);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {

@@ -38,12 +38,22 @@ export function SaleRecordDialog({ open, onOpenChange, dish, onSuccess }: SaleRe
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      // TODO: Implement API call when sales endpoint is ready
-      // await fetch('/api/sales', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ dishId: dish.id, quantity }),
-      // });
-      onSuccess();
+      // Import action dynamically
+      const { createSaleAction } = await import('@/lib/actions/sale.actions');
+
+      const result = await createSaleAction({
+        dishId: dish.id,
+        quantitySold: quantity,
+        saleDate: new Date(),
+      });
+
+      if (result.success) {
+        toast.success(t('today.saleDialog.success'));
+        setQuantity(1);
+        onSuccess();
+      } else {
+        toast.error(result.error || 'Failed to record sale');
+      }
     } catch (error) {
       console.error('Error recording sale:', error);
       toast.error('Failed to record sale');

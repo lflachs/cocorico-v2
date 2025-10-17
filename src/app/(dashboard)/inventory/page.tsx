@@ -11,6 +11,8 @@ import { cookies } from 'next/headers';
  * Comprehensive inventory management with table view, search, and inline editing
  */
 
+export const dynamic = 'force-dynamic';
+
 export default async function InventoryPage() {
   const products = await getProducts();
   const cookieStore = await cookies();

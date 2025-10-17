@@ -29,6 +29,12 @@ export async function updateProduct(id: string, data: UpdateProductInput): Promi
   });
 }
 
+export async function getAllProducts(): Promise<Product[]> {
+  return await db.product.findMany({
+    orderBy: { name: 'asc' },
+  });
+}
+
 export async function deleteProduct(id: string): Promise<void> {
   // Check if product is used in recipes
   const recipeCount = await db.recipeIngredient.count({
