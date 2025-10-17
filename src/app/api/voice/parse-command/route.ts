@@ -95,10 +95,41 @@ Règles pour les unités (TRÈS IMPORTANT):
 - ATTENTION: Si le contexte suggère un liquide (comme pour l'huile, eau, lait), utilisez "L"
 
 Règles de correspondance (CRITIQUES):
-1. Essayez de correspondre aux produits existants (correspondance floue OK pour les fautes de frappe)
+1. Essayez de correspondre aux produits existants avec correspondance floue intelligente
 2. Si confiance élevée (>0.8) ET que le produit correspond vraiment, incluez l'ID et les détails RÉELS du produit
 3. Si le produit N'EXISTE PAS dans l'inventaire, vous DEVEZ mettre matchedProductId=null, matchedProductName=null, currentQuantity=null
 4. Pour les nouveaux produits (matchedProductId=null), mettez needsConfirmation à true et demandez s'ils veulent le créer
+5. IMPORTANT - Correspondance floue et suggestions (utilisez TOUJOURS cette logique):
+   a) Erreurs de reconnaissance vocale:
+      - "tarotte" → suggérer "carotte" (faute de frappe/prononciation)
+      - "tomat" → suggérer "tomate"
+      - "pwomme" → suggérer "pomme"
+      - Vérifiez la similarité phonétique et orthographique
+   b) Noms partiels ou génériques:
+      - "huile d'olive" → suggérer "Huile d'olive verte" (nom plus spécifique existe)
+      - "tomate" → suggérer "Tomates cerises" (variante existe)
+      - "fromage" → suggérer "Fromage de chèvre" (type spécifique existe)
+   c) Variantes linguistiques:
+      - Singulier/pluriel: "tomate" vs "tomates"
+      - Accents manquants: "fromage" vs "Fromage de chèvre"
+
+   Pour TOUS ces cas:
+   - Si la correspondance est claire (ex: "tarotte" → "carotte"), mettez matchedProductId avec l'ID du produit et demandez:
+     "Voulez-vous ajouter X [unité] à '[nom exact du produit existant]'? Dites oui ou non."
+   - Si le nom est partiel mais qu'un produit similaire existe (ex: "huile d'olive" → "Huile d'olive verte"):
+     Mettez matchedProductId avec l'ID du produit similaire et demandez:
+     "J'ai trouvé '[nom exact]' dans l'inventaire. Voulez-vous utiliser ce produit? Dites oui pour l'utiliser, ou non pour créer un nouveau produit."
+   - Utilisez toujours needsConfirmation=true
+   - IMPORTANT: La confirmation doit TOUJOURS être une question oui/non claire
+
+6. TRÈS IMPORTANT - Détection de conflit d'unités:
+   - Si un produit existe avec une unité différente de celle demandée, vous DEVEZ demander confirmation
+   - Exemple: "carottes" existe en KG, mais l'utilisateur dit "ajoute 2 pièces de carottes"
+     → Mettez needsConfirmation=true et matchedProductId=null
+     → Demandez: "Attention! 'Carottes' existe déjà en KG dans l'inventaire. Vous demandez PC. Voulez-vous créer un produit séparé 'Carottes (pièces)'? Dites oui ou non."
+   - Si l'utilisateur dit "ajoute 2 kg de carottes" et que "carottes" existe en KG:
+     → Correspondance parfaite, pas de conflit, utilisez matchedProductId
+   - RÈGLE: Deux produits avec le même nom mais des unités différentes doivent être des entrées séparées
 
 IMPORTANT:
 - Utilisez UNIQUEMENT les données réelles de la liste d'inventaire ci-dessus
@@ -157,10 +188,41 @@ Unit detection rules:
 - If user mentions "bottle(s)", "box(es)", "can(s)", "piece(s)", "unit(s)", or no unit → unit: "PC"
 
 Matching rules (CRITICAL):
-1. Try to match to existing products (fuzzy matching OK for typos only)
+1. Try to match to existing products with intelligent fuzzy matching
 2. If high confidence (>0.8) AND product truly matches, include the REAL product ID and details
 3. If the product DOES NOT EXIST in inventory, you MUST set matchedProductId=null, matchedProductName=null, currentQuantity=null
 4. For new products (matchedProductId=null), set needsConfirmation to true and ask if they want to create it
+5. IMPORTANT - Fuzzy matching and suggestions (ALWAYS use this logic):
+   a) Speech recognition errors:
+      - "carret" → suggest "carrot" (typo/pronunciation error)
+      - "tomat" → suggest "tomato"
+      - "aple" → suggest "apple"
+      - Check for phonetic and spelling similarity
+   b) Partial or generic names:
+      - "olive oil" → suggest "Green olive oil" (more specific name exists)
+      - "tomato" → suggest "Cherry tomatoes" (variant exists)
+      - "cheese" → suggest "Goat cheese" (specific type exists)
+   c) Linguistic variants:
+      - Singular/plural: "tomato" vs "tomatoes"
+      - Missing accents or articles
+
+   For ALL these cases:
+   - If the match is clear (e.g., "carret" → "carrot"), set matchedProductId with the product ID and ask:
+     "Do you want to add X [unit] to '[exact name of existing product]'? Say yes or no."
+   - If the name is partial but a similar product exists (e.g., "olive oil" → "Green olive oil"):
+     Set matchedProductId with the similar product ID and ask:
+     "I found '[exact name]' in the inventory. Do you want to use this product? Say yes to use it, or no to create a new product."
+   - Always use needsConfirmation=true
+   - IMPORTANT: The confirmation must ALWAYS be a clear yes/no question
+
+6. VERY IMPORTANT - Unit conflict detection:
+   - If a product exists with a different unit than requested, you MUST ask for confirmation
+   - Example: "carrots" exists in KG, but user says "add 2 pieces of carrots"
+     → Set needsConfirmation=true and matchedProductId=null
+     → Ask: "Warning! 'Carrots' already exists in KG in inventory. You're requesting PC. Do you want to create a separate product 'Carrots (pieces)'? Say yes or no."
+   - If user says "add 2 kg of carrots" and "carrots" exists in KG:
+     → Perfect match, no conflict, use matchedProductId
+   - RULE: Two products with the same name but different units should be separate entries
 
 IMPORTANT:
 - Use ONLY the real data from the inventory list above
