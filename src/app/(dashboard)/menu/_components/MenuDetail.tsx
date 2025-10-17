@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { toast } from 'sonner';
 import { DishWizard } from './DishWizard';
+import { DishEditModal } from './DishEditModal';
 
 /**
  * Menu Detail
