@@ -20,6 +20,7 @@ import { type Product } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { VoiceAssistant } from '@/components/voice/VoiceAssistant';
 
 /**
  * Comprehensive Inventory View Component
@@ -212,9 +213,13 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
     productsWithValue.length > 0 ? calculateStockValue() / productsWithValue.length : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Stock Valuation Summary */}
-      <Card>
+    <>
+      {/* Voice Assistant */}
+      <VoiceAssistant onInventoryUpdate={fetchProducts} />
+
+      <div className="space-y-6">
+        {/* Stock Valuation Summary */}
+        <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Euro className="w-5 h-5 text-green-600" />
@@ -478,6 +483,7 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
