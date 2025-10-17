@@ -96,7 +96,15 @@ export async function getMenuById(id: string): Promise<MenuWithSections | null> 
         include: {
           dishes: {
             include: {
-              dish: true,
+              dish: {
+                include: {
+                  recipeIngredients: {
+                    include: {
+                      product: true,
+                    },
+                  },
+                },
+              },
             },
             orderBy: { displayOrder: 'asc' },
           },
