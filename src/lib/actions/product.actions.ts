@@ -3,17 +3,18 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { productSchema } from '@/lib/validations/product.schema';
-import { createProduct, updateProduct, deleteProduct } from '@/lib/services/product.service';
+import { createProduct, updateProduct, deleteProduct, getAllProducts } from '@/lib/services/product.service';
+import type { Product } from '@prisma/client';
 
 /**
  * Product Server Actions
  * Handle form submissions and mutations from Client Components
  */
 
-type ActionResult = {
+type ActionResult<T = Product> = {
   success: boolean;
   error?: string;
-  data?: any;
+  data?: T;
 };
 
 export async function createProductAction(formData: FormData): Promise<ActionResult> {
@@ -51,5 +52,17 @@ export async function deleteProductAction(productId: string): Promise<ActionResu
       return { success: false, error: error.message };
     }
     return { success: false, error: 'Failed to delete product' };
+  }
+}
+
+export async function getProductsAction(): Promise<ActionResult<Product[]>> {
+  try {
+    const products = await getAllProducts();
+    return { success: true, data: products };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: 'Failed to fetch products' };
   }
 }
