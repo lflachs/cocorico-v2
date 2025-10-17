@@ -58,16 +58,25 @@ UNITÉS VALIDES (utilisez UNIQUEMENT ces 3 unités):
 Analysez la commande vocale de l'utilisateur et répondez UNIQUEMENT avec un JSON valide dans ce format exact:
 {
   "action": "add" | "remove" | "check" | "list" | "unknown",
-  "product": "nom du produit extrait de la commande",
-  "quantity": nombre (1 par défaut si non spécifié),
-  "matchedProductId": "ID du produit si trouvé, ou null",
-  "matchedProductName": "nom exact du produit dans l'inventaire si trouvé, ou null",
-  "currentQuantity": nombre (stock actuel si trouvé, ou null),
-  "unit": "KG" | "L" | "PC" (UNIQUEMENT ces 3 valeurs, détectez l'unité appropriée depuis la commande vocale),
+  "products": [
+    {
+      "product": "nom du produit extrait de la commande",
+      "quantity": nombre (1 par défaut si non spécifié),
+      "matchedProductId": "ID du produit si trouvé, ou null",
+      "matchedProductName": "nom exact du produit dans l'inventaire si trouvé, ou null",
+      "currentQuantity": nombre (stock actuel si trouvé, ou null),
+      "unit": "KG" | "L" | "PC" (UNIQUEMENT ces 3 valeurs, détectez l'unité appropriée depuis la commande vocale)
+    }
+  ],
   "confidence": nombre (0.0 à 1.0, votre niveau de confiance),
   "needsConfirmation": boolean (true si l'utilisateur doit confirmer),
   "confirmationMessage": "Une question naturelle et amicale à poser à l'utilisateur en FRANÇAIS"
 }
+
+IMPORTANT: L'utilisateur peut mentionner PLUSIEURS produits dans une seule commande.
+- "ajoute 3 kg de tomates et 2 kg de pommes de terre" → products: [{product: "tomates", quantity: 3, unit: "KG"}, {product: "pommes de terre", quantity: 2, unit: "KG"}]
+- "ajoute 5 litres d'huile" → products: [{product: "huile", quantity: 5, unit: "L"}]
+- Toujours retourner un tableau de produits, même s'il n'y en a qu'un seul
 
 Types de commandes et détection d'unités (EXEMPLES):
 - "ajoute 5 kilos de carottes" → unit: "KG"
@@ -115,16 +124,25 @@ VALID UNITS (use ONLY these 3 units):
 Parse the user's voice command and respond with ONLY valid JSON in this exact format:
 {
   "action": "add" | "remove" | "check" | "list" | "unknown",
-  "product": "product name extracted from command",
-  "quantity": number (default to 1 if not specified),
-  "matchedProductId": "product ID if matched, or null",
-  "matchedProductName": "exact product name from inventory if matched, or null",
-  "currentQuantity": number (current stock if matched, or null),
-  "unit": "KG" | "L" | "PC" (ONLY these 3 values, detect the appropriate unit from the voice command),
+  "products": [
+    {
+      "product": "product name extracted from command",
+      "quantity": number (default to 1 if not specified),
+      "matchedProductId": "product ID if matched, or null",
+      "matchedProductName": "exact product name from inventory if matched, or null",
+      "currentQuantity": number (current stock if matched, or null),
+      "unit": "KG" | "L" | "PC" (ONLY these 3 values, detect the appropriate unit from the voice command)
+    }
+  ],
   "confidence": number (0.0 to 1.0, how confident you are in the match),
   "needsConfirmation": boolean (true if user should confirm before action),
   "confirmationMessage": "A natural, friendly question to ask the user for confirmation in ENGLISH"
 }
+
+IMPORTANT: The user can mention MULTIPLE products in a single command.
+- "add 3 kg of tomatoes and 2 kg of potatoes" → products: [{product: "tomatoes", quantity: 3, unit: "KG"}, {product: "potatoes", quantity: 2, unit: "KG"}]
+- "add 5 liters of oil" → products: [{product: "oil", quantity: 5, unit: "L"}]
+- Always return an array of products, even if there's only one
 
 Command types and unit detection:
 - ADD: "add 5 kilos of carrots" → unit: "KG"

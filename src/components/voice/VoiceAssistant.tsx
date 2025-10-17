@@ -11,14 +11,18 @@ import { useLanguage } from "@/providers/LanguageProvider";
 
 type ConversationState = "idle" | "recording" | "transcribing" | "parsing" | "confirming" | "executing" | "speaking";
 
-type ParsedCommand = {
-  action: "add" | "remove" | "check" | "list" | "unknown";
+type ProductCommand = {
   product: string;
   quantity: number;
   matchedProductId: string | null;
   matchedProductName: string | null;
   currentQuantity: number | null;
   unit: string | null;
+};
+
+type ParsedCommand = {
+  action: "add" | "remove" | "check" | "list" | "unknown";
+  products: ProductCommand[];
   confidence: number;
   needsConfirmation: boolean;
   confirmationMessage: string;
@@ -447,7 +451,7 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
   // Execute command (extracted from handleConfirm to avoid state closure issues)
   const executeCommand = async (command: ParsedCommand) => {
-    console.log("[Voice] executeCommand started, action:", command.action);
+    console.log("[Voice] executeCommand started, action:", command.action, "products:", command.products);
 
     try {
       setState("executing");
@@ -461,94 +465,101 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       };
       const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
 
-      // Execute the action
-      if (command.action === "add") {
-        if (command.matchedProductId) {
-          console.log("[Voice] Updating existing product:", command.matchedProductId);
-          // Update existing product
-          const newQuantity = (command.currentQuantity || 0) + command.quantity;
-          const response = await fetch(`/api/products/${command.matchedProductId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ quantity: newQuantity }),
-          });
+      // Process each product in the command
+      const results = [];
+      for (const productCmd of command.products) {
+        // Execute the action for each product
+        if (command.action === "add") {
+          if (productCmd.matchedProductId) {
+            console.log("[Voice] Updating existing product:", productCmd.matchedProductId);
+            // Update existing product
+            const newQuantity = (productCmd.currentQuantity || 0) + productCmd.quantity;
+            const response = await fetch(`/api/products/${productCmd.matchedProductId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ quantity: newQuantity }),
+            });
 
-          if (!response.ok) {
-            throw new Error(`Failed to update product: ${response.status}`);
+            if (!response.ok) {
+              throw new Error(`Failed to update product: ${response.status}`);
+            }
+
+            console.log("[Voice] Product updated successfully");
+            results.push({ name: productCmd.matchedProductName, quantity: newQuantity, unit: productCmd.unit });
+
+            // Trigger inventory refresh
+            onInventoryUpdate?.();
+          } else {
+            console.log("[Voice] Creating new product:", productCmd.product);
+            // Create new product
+            const response = await fetch("/api/products", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: productCmd.product,
+                quantity: productCmd.quantity,
+                unit: productCmd.unit || "PC",
+                trackable: true,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(`Failed to create product: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            console.log("[Voice] Product created successfully");
+            results.push({ name: productCmd.product, quantity: productCmd.quantity, unit: productCmd.unit, isNew: true });
+
+            // Trigger inventory refresh
+            onInventoryUpdate?.();
           }
+        } else if (command.action === "remove") {
+          if (productCmd.matchedProductId) {
+            console.log("[Voice] Removing quantity from product:", productCmd.matchedProductId);
+            const newQuantity = Math.max(0, (productCmd.currentQuantity || 0) - productCmd.quantity);
+            const response = await fetch(`/api/products/${productCmd.matchedProductId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ quantity: newQuantity }),
+            });
 
-          console.log("[Voice] Product updated successfully");
+            if (!response.ok) {
+              throw new Error(`Failed to update product: ${response.status}`);
+            }
 
-          const successMessage = currentLang === 'fr'
-            ? `Terminé! Vous avez maintenant ${newQuantity} ${command.unit || ""} de ${command.matchedProductName}.`
-            : `Done! You now have ${newQuantity} ${command.unit || ""} of ${command.matchedProductName}.`;
+            console.log("[Voice] Product quantity reduced successfully");
+            results.push({ name: productCmd.matchedProductName, quantity: newQuantity, unit: productCmd.unit });
 
-          console.log("[Voice] Speaking success message:", successMessage);
-          await speakText(successMessage);
-          toast.success(successMessage);
-
-          // Trigger inventory refresh
-          onInventoryUpdate?.();
-        } else {
-          console.log("[Voice] Creating new product:", command.product);
-          // Create new product
-          const response = await fetch("/api/products", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: command.product,
-              quantity: command.quantity,
-              unit: command.unit || "PC",
-              trackable: true,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to create product: ${response.status} - ${JSON.stringify(errorData)}`);
+            // Trigger inventory refresh
+            onInventoryUpdate?.();
           }
-
-          console.log("[Voice] Product created successfully");
-
-          const successMessage = currentLang === 'fr'
-            ? `Nouveau produit ${command.product} créé avec une quantité de ${command.quantity}.`
-            : `Created new product ${command.product} with quantity ${command.quantity}.`;
-
-          console.log("[Voice] Speaking success message:", successMessage);
-          await speakText(successMessage);
-          toast.success(successMessage);
-
-          // Trigger inventory refresh
-          onInventoryUpdate?.();
-        }
-      } else if (command.action === "remove") {
-        if (command.matchedProductId) {
-          console.log("[Voice] Removing quantity from product:", command.matchedProductId);
-          const newQuantity = Math.max(0, (command.currentQuantity || 0) - command.quantity);
-          const response = await fetch(`/api/products/${command.matchedProductId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ quantity: newQuantity }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to update product: ${response.status}`);
-          }
-
-          console.log("[Voice] Product quantity reduced successfully");
-
-          const successMessage = currentLang === 'fr'
-            ? `Terminé! Vous avez maintenant ${newQuantity} ${command.unit || ""} de ${command.matchedProductName}.`
-            : `Done! You now have ${newQuantity} ${command.unit || ""} of ${command.matchedProductName}.`;
-
-          console.log("[Voice] Speaking success message:", successMessage);
-          await speakText(successMessage);
-          toast.success(successMessage);
-
-          // Trigger inventory refresh
-          onInventoryUpdate?.();
         }
       }
+
+      // Generate success message for all products
+      let successMessage = '';
+      if (results.length === 1) {
+        const result = results[0];
+        if (result.isNew) {
+          successMessage = currentLang === 'fr'
+            ? `Nouveau produit ${result.name} créé avec une quantité de ${result.quantity}.`
+            : `Created new product ${result.name} with quantity ${result.quantity}.`;
+        } else {
+          successMessage = currentLang === 'fr'
+            ? `Terminé! Vous avez maintenant ${result.quantity} ${result.unit || ""} de ${result.name}.`
+            : `Done! You now have ${result.quantity} ${result.unit || ""} of ${result.name}.`;
+        }
+      } else {
+        // Multiple products
+        successMessage = currentLang === 'fr'
+          ? `Terminé! ${results.length} produits mis à jour avec succès.`
+          : `Done! ${results.length} products updated successfully.`;
+      }
+
+      console.log("[Voice] Speaking success message:", successMessage);
+      await speakText(successMessage);
+      toast.success(successMessage);
 
       // Reset
       console.log("[Voice] Action completed, resetting state");
@@ -661,13 +672,15 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
             {/* Parsed command */}
             {parsedCommand && (
               <div className="border rounded-lg p-4 space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant={parsedCommand.action === "add" ? "default" : parsedCommand.action === "remove" ? "destructive" : "secondary"}>
                     {parsedCommand.action}
                   </Badge>
-                  {parsedCommand.matchedProductName && (
-                    <Badge variant="outline">{parsedCommand.matchedProductName}</Badge>
-                  )}
+                  {parsedCommand.products.map((prod, idx) => (
+                    <Badge key={idx} variant="outline">
+                      {prod.matchedProductName || prod.product} ({prod.quantity} {prod.unit})
+                    </Badge>
+                  ))}
                 </div>
                 <p className="text-sm">{parsedCommand.confirmationMessage}</p>
                 {parsedCommand.confidence < 0.7 && (
