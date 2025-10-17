@@ -62,6 +62,8 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
   const [loading, setLoading] = useState(true);
   const [showDishWizard, setShowDishWizard] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
 
   const loadMenu = useCallback(async () => {
     setLoading(true);
@@ -86,6 +88,11 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
   const handleAddDish = (sectionId: string) => {
     setSelectedSectionId(sectionId);
     setShowDishWizard(true);
+  };
+
+  const handleEditDish = (dish: Dish) => {
+    setSelectedDish(dish);
+    setShowEditModal(true);
   };
 
   const handleRemoveDish = async (menuDishId: string) => {
@@ -164,7 +171,7 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                         key={menuDish.id}
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
-                        <div>
+                        <div className="flex-1">
                           <div className="font-medium">{menuDish.dish.name}</div>
                           {menuDish.dish.description && (
                             <div className="text-sm text-gray-600">
@@ -176,14 +183,23 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                             {cost > 0 && ` • €${cost.toFixed(2)}`}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveDish(menuDish.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditDish(menuDish.dish)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveDish(menuDish.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
@@ -202,6 +218,18 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
           onSuccess={() => {
             loadMenu();
             setShowDishWizard(false);
+          }}
+        />
+      )}
+
+      {selectedDish && (
+        <DishEditModal
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+          dish={selectedDish}
+          onSuccess={() => {
+            loadMenu();
+            setShowEditModal(false);
           }}
         />
       )}
