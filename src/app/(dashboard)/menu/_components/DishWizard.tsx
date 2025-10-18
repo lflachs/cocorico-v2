@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { CompositeProductWizard } from '../../inventory/_components/CompositeProductWizard';
 import { Badge } from '@/components/ui/badge';
 import { SUPPORTED_UNITS, UNIT_LABELS } from '@/lib/constants/units';
+import { IngredientAutocomplete } from '@/components/ui/ingredient-autocomplete';
 
 /**
  * Dish Wizard
@@ -270,10 +271,6 @@ export function DishWizard({ open, onOpenChange, sectionId, onSuccess }: DishWiz
     }
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -328,14 +325,13 @@ export function DishWizard({ open, onOpenChange, sectionId, onSuccess }: DishWiz
             <div className="border rounded-lg p-4 space-y-3">
               <div>
                 <Label htmlFor="search">{t('menu.dishWizard.searchIngredient')}</Label>
-                <Input
-                  id="search"
+                <IngredientAutocomplete
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
+                  onChange={(value) => {
+                    setSearchQuery(value);
                     // Auto-select if exact match
-                    const match = filteredProducts.find(p =>
-                      p.name.toLowerCase() === e.target.value.toLowerCase()
+                    const match = products.find(p =>
+                      p.name.toLowerCase() === value.toLowerCase()
                     );
                     if (match) {
                       setSelectedProductId(match.id);
@@ -344,14 +340,10 @@ export function DishWizard({ open, onOpenChange, sectionId, onSuccess }: DishWiz
                       setSelectedProductId('');
                     }
                   }}
-                  placeholder="Type to search..."
-                  list="products-list"
+                  placeholder="Tapez pour rechercher... (ex: Tomate, Oignon, Poulet)"
+                  disabled={loading}
+                  existingProducts={products}
                 />
-                <datalist id="products-list">
-                  {filteredProducts.map(p => (
-                    <option key={p.id} value={p.name} />
-                  ))}
-                </datalist>
 
                 {searchQuery && (
                   <div className="mt-2">

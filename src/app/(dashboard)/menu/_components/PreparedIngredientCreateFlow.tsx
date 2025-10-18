@@ -23,6 +23,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Beaker, ArrowLeft, CheckCircle2, AlertCircle, Plus, Trash2, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { IngredientAutocomplete } from '@/components/ui/ingredient-autocomplete';
 
 /**
  * Prepared Ingredient Create Flow - Full screen creation
@@ -268,10 +269,6 @@ export function PreparedIngredientCreateFlow() {
     router.push('/menu');
   };
 
-  const filteredProducts = baseProducts.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const isFormValid = !errors.name && !errors.yieldQuantity &&
                       formData.name.trim().length > 0 &&
                       formData.yieldQuantity.trim().length > 0;
@@ -419,14 +416,13 @@ export function PreparedIngredientCreateFlow() {
                   <Label htmlFor="search" className="text-sm font-medium">
                     {t('composite.searchIngredient')}
                   </Label>
-                  <Input
-                    id="search"
+                  <IngredientAutocomplete
                     value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
+                    onChange={(value) => {
+                      setSearchQuery(value);
                       // Auto-select if exact match
-                      const match = filteredProducts.find(p =>
-                        p.name.toLowerCase() === e.target.value.toLowerCase()
+                      const match = baseProducts.find(p =>
+                        p.name.toLowerCase() === value.toLowerCase()
                       );
                       if (match) {
                         setSelectedProductId(match.id);
@@ -435,15 +431,10 @@ export function PreparedIngredientCreateFlow() {
                         setSelectedProductId('');
                       }
                     }}
-                    placeholder={t('composite.searchPlaceholder')}
-                    list="products-list"
-                    className="cursor-text"
+                    placeholder="Tapez pour rechercher... (ex: Tomate, Oignon, Poulet)"
+                    disabled={saving}
+                    existingProducts={baseProducts}
                   />
-                  <datalist id="products-list">
-                    {filteredProducts.map(p => (
-                      <option key={p.id} value={p.name} />
-                    ))}
-                  </datalist>
 
                   {searchQuery && (
                     <div className="mt-2">

@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { ChefHat, ArrowLeft, CheckCircle2, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { IngredientAutocomplete } from '@/components/ui/ingredient-autocomplete';
 
 /**
  * Dish Create Flow - Full screen, user-friendly dish creation
@@ -339,14 +340,13 @@ export function DishCreateFlow() {
               <div className="space-y-4 p-4 border rounded-lg bg-muted/30 mb-6">
                 <div className="space-y-3">
                   <Label htmlFor="ingredientName" className="text-sm font-medium">
-                    Ingredient Name
+                    Nom de l'ingrédient
                   </Label>
-                  <Input
-                    id="ingredientName"
-                    placeholder="e.g., Flour, Eggs, Milk"
+                  <IngredientAutocomplete
                     value={currentIngredient.productName}
-                    onChange={(e) => setCurrentIngredient({ ...currentIngredient, productName: e.target.value })}
-                    className="cursor-text"
+                    onChange={(value) => setCurrentIngredient({ ...currentIngredient, productName: value })}
+                    placeholder="Tapez pour rechercher... (ex: Tomate, Oignon, Poulet)"
+                    disabled={saving}
                   />
                 </div>
 
