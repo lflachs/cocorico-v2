@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +17,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, Plus, Trash2, Pencil, ChefHat, ChevronDown, Search, Loader2, DollarSign, TrendingUp, Edit2, X, Check } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Pencil,
+  ChefHat,
+  ChevronDown,
+  Search,
+  Loader2,
+  DollarSign,
+  TrendingUp,
+  Edit2,
+  X,
+  Check,
+} from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { toast } from 'sonner';
 import { DishEditModal } from './DishEditModal';
@@ -224,8 +237,58 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
     }, 0);
   };
 
+  const handleEditPricing = () => {
+    if (menu) {
+      setPricingFormData({
+        pricingType: menu.pricingType,
+        fixedPrice: menu.fixedPrice || 0,
+        numberOfCourses: menu.minCourses || 2,
+      });
+    }
+    setEditingPricing(true);
+  };
+
+  const handleCancelPricingEdit = () => {
+    setEditingPricing(false);
+    if (menu) {
+      setPricingFormData({
+        pricingType: menu.pricingType,
+        fixedPrice: menu.fixedPrice || 0,
+        numberOfCourses: menu.minCourses || 2,
+      });
+    }
+  };
+
+  const handleSavePricing = async () => {
+    if (!menu) return;
+
+    setSavingPricing(true);
+    try {
+      const { updateMenuAction } = await import('@/lib/actions/menu.actions');
+      const result = await updateMenuAction(menu.id, {
+        pricingType: pricingFormData.pricingType,
+        fixedPrice: pricingFormData.fixedPrice,
+        minCourses: pricingFormData.numberOfCourses,
+        maxCourses: pricingFormData.numberOfCourses,
+      });
+
+      if (result.success) {
+        toast.success(t('menu.update.success'));
+        loadMenu();
+        setEditingPricing(false);
+      } else {
+        toast.error(result.error || t('menu.update.error'));
+      }
+    } catch (error) {
+      console.error('Error updating pricing:', error);
+      toast.error(t('menu.update.error'));
+    } finally {
+      setSavingPricing(false);
+    }
+  };
+
   if (loading || !menu) {
-    return <div className="text-center py-8">Loading...</div>;
+    return <div className="py-8 text-center">Loading...</div>;
   }
 
   const pricingSummary = getMenuPricingSummary(menu as any);
@@ -234,73 +297,63 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
     <>
       <Card>
         <CardHeader>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="w-fit mb-2"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
+          <Button variant="ghost" size="sm" onClick={onBack} className="mb-2 w-fit">
+            <ArrowLeft className="mr-1 h-4 w-4" />
             {t('menu.backToMenus')}
           </Button>
           <CardTitle>{menu.name}</CardTitle>
-          {menu.description && (
-            <CardDescription>{menu.description}</CardDescription>
-          )}
+          {menu.description && <CardDescription>{menu.description}</CardDescription>}
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Pricing Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+          <div className="grid grid-cols-1 gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 p-4 md:grid-cols-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-blue-600" />
+              <div className="rounded-lg bg-blue-100 p-2">
+                <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600">Pricing Type</p>
-                <p className="font-semibold text-sm">{pricingSummary.pricingType}</p>
+                <p className="text-sm font-semibold">{pricingSummary.pricingType}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-green-600" />
+              <div className="rounded-lg bg-green-100 p-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600">{t('menu.pricing.price')}</p>
-                <p className="font-semibold text-sm">{pricingSummary.price}</p>
+                <p className="text-sm font-semibold">{pricingSummary.price}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
+              <div className="rounded-lg bg-purple-100 p-2">
+                <TrendingUp className="h-5 w-5 text-purple-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600">{t('menu.pricing.margin')}</p>
-                <p className="font-semibold text-sm">{pricingSummary.margin}</p>
+                <p className="text-sm font-semibold">{pricingSummary.margin}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-orange-600" />
+              <div className="rounded-lg bg-orange-100 p-2">
+                <DollarSign className="h-5 w-5 text-orange-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600">{t('menu.pricing.costRange')}</p>
-                <p className="font-semibold text-sm">{pricingSummary.costRange}</p>
+                <p className="text-sm font-semibold">{pricingSummary.costRange}</p>
               </div>
             </div>
           </div>
           {menu.sections.map((section) => (
-            <div key={section.id} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
+            <div key={section.id} className="rounded-lg border p-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold">{section.name}</h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
+                    <Button size="sm" className="cursor-pointer">
+                      <Plus className="mr-1 h-4 w-4" />
                       {t('menu.section.addDish')}
-                      <ChevronDown className="w-4 h-4 ml-1" />
+                      <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -308,14 +361,14 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                       onClick={() => handleCreateNewDish(section.id)}
                       className="cursor-pointer"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="mr-2 h-4 w-4" />
                       {t('menu.createDish')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleSelectExistingDish(section.id)}
                       className="cursor-pointer"
                     >
-                      <ChefHat className="w-4 h-4 mr-2" />
+                      <ChefHat className="mr-2 h-4 w-4" />
                       {t('menu.selectExisting')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -323,33 +376,31 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
               </div>
 
               {section.dishes.length === 0 ? (
-                <p className="text-center py-6 text-gray-500">
-                  {t('menu.section.noDishes')}
-                </p>
+                <p className="py-6 text-center text-gray-500">{t('menu.section.noDishes')}</p>
               ) : (
                 <div className="space-y-2">
                   {section.dishes.map((menuDish) => {
                     const cost = calculateDishCost(menuDish.dish);
                     const sellingPrice = menuDish.dish.sellingPrice;
-                    const margin = cost > 0 && sellingPrice
-                      ? ((sellingPrice - cost) / sellingPrice) * 100
-                      : null;
+                    const margin =
+                      cost > 0 && sellingPrice
+                        ? ((sellingPrice - cost) / sellingPrice) * 100
+                        : null;
 
                     return (
                       <div
                         key={menuDish.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
                       >
                         <div className="flex-1">
                           <div className="font-medium">{menuDish.dish.name}</div>
                           {menuDish.dish.description && (
-                            <div className="text-sm text-gray-600">
-                              {menuDish.dish.description}
-                            </div>
+                            <div className="text-sm text-gray-600">{menuDish.dish.description}</div>
                           )}
-                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
                             <span>
-                              {menuDish.dish.recipeIngredients?.length || 0} {t('menu.dish.ingredients')}
+                              {menuDish.dish.recipeIngredients?.length || 0}{' '}
+                              {t('menu.dish.ingredients')}
                             </span>
                             {cost > 0 && (
                               <span>
@@ -362,7 +413,13 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                               </span>
                             )}
                             {margin !== null && (
-                              <span className={margin > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                              <span
+                                className={
+                                  margin > 0
+                                    ? 'font-semibold text-green-600'
+                                    : 'font-semibold text-red-600'
+                                }
+                              >
                                 {t('menu.dishWizard.margin')}: {margin.toFixed(1)}%
                               </span>
                             )}
@@ -374,7 +431,7 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                             size="sm"
                             onClick={() => handleEditDish(menuDish.dish)}
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -382,7 +439,7 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                             onClick={() => handleRemoveDish(menuDish.id)}
                             className="text-red-500 hover:text-red-700"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -397,35 +454,33 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
 
       {/* Dish Selector Dialog */}
       <Dialog open={showDishSelector} onOpenChange={setShowDishSelector}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">{t('menu.selectExisting')}</DialogTitle>
-            <DialogDescription>
-              Select a dish to add to this section
-            </DialogDescription>
+            <DialogDescription>Select a dish to add to this section</DialogDescription>
           </DialogHeader>
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
             <Input
               type="text"
               placeholder="Search dishes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 cursor-text"
+              className="cursor-text pl-10"
             />
           </div>
 
           {/* Dishes List */}
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+          <div className="max-h-96 space-y-2 overflow-y-auto">
             {loadingDishes ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                <p className="text-sm text-muted-foreground mt-2">Loading dishes...</p>
+              <div className="py-8 text-center">
+                <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+                <p className="text-muted-foreground mt-2 text-sm">Loading dishes...</p>
               </div>
             ) : filteredDishes.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-muted-foreground py-8 text-center">
                 {searchQuery ? (
                   <>
                     <p>No dishes found matching "{searchQuery}"</p>
@@ -461,7 +516,7 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                 return (
                   <Card
                     key={dish.id}
-                    className="cursor-pointer hover:border-primary hover:shadow-md transition-all"
+                    className="hover:border-primary cursor-pointer transition-all hover:shadow-md"
                     onClick={() => !adding && handleAddExistingDish(dish.id)}
                   >
                     <CardContent className="p-4">
@@ -469,11 +524,9 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                         <div className="flex-1">
                           <h4 className="font-semibold">{dish.name}</h4>
                           {dish.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {dish.description}
-                            </p>
+                            <p className="text-muted-foreground mt-1 text-sm">{dish.description}</p>
                           )}
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                          <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
                             <span>
                               {dish.recipeIngredients?.length || 0} {t('menu.dish.ingredients')}
                             </span>
@@ -482,14 +535,10 @@ export function MenuDetail({ menuId, onBack }: MenuDetailProps) {
                                 {t('menu.dish.cost')}: €{cost.toFixed(2)}
                               </span>
                             )}
-                            {sellingPrice && (
-                              <span>
-                                €{sellingPrice.toFixed(2)}
-                              </span>
-                            )}
+                            {sellingPrice && <span>€{sellingPrice.toFixed(2)}</span>}
                           </div>
                         </div>
-                        <Plus className="w-5 h-5 text-primary shrink-0 ml-4" />
+                        <Plus className="text-primary ml-4 h-5 w-5 shrink-0" />
                       </div>
                     </CardContent>
                   </Card>
