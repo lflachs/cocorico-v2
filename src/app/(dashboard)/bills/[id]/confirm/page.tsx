@@ -9,6 +9,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ExtractedProductsList } from '../../_components/ExtractedProductsList';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { toast } from 'sonner';
+import { SUPPORTED_UNITS } from '@/lib/constants/units';
 
 /**
  * Bill Confirmation Page
@@ -92,9 +93,8 @@ export default function BillConfirmPage() {
     if (!bill) return;
 
     // Validate units
-    const ALLOWED_UNITS = ['KG', 'L', 'PC'];
     const invalidUnits = bill.extractedProducts.filter(
-      (p) => !ALLOWED_UNITS.includes(p.unit.toUpperCase())
+      (p) => !SUPPORTED_UNITS.includes(p.unit.toUpperCase() as any)
     );
     if (invalidUnits.length > 0) {
       toast.error('Some products have invalid units. Please correct them before confirming.');

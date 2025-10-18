@@ -23,30 +23,29 @@ export default async function BillsPage() {
   return (
     <div className="space-y-6">
       {/* Header with gradient background */}
-      <div className="relative">
-        <PageHeader
-          title={t('bills.title')}
-          subtitle={t('bills.description')}
-          icon={FileText}
-        />
-        {/* Upload Button - positioned absolutely over the header */}
-        <div className="absolute top-6 right-6">
-          <Link href="/bills/upload">
-            <Button className="gap-2 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm shadow-lg">
-              <Upload className="w-4 h-4" />
-              {t('bills.uploadNew')}
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={t('bills.title')}
+        subtitle={t('bills.description')}
+        icon={FileText}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            {t('bills.recentBills')}
-          </CardTitle>
-          <CardDescription>{t('bills.recentBills.description')}</CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                {t('bills.recentBills')}
+              </CardTitle>
+              <CardDescription>{t('bills.recentBills.description')}</CardDescription>
+            </div>
+            <Link href="/bills/upload">
+              <Button className="gap-2 cursor-pointer">
+                <Upload className="w-4 h-4" />
+                {t('bills.uploadNew')}
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           {bills.length === 0 ? (
@@ -55,7 +54,7 @@ export default async function BillsPage() {
               <p className="text-lg font-medium">{t('bills.empty')}</p>
               <p className="text-sm mt-2">{t('bills.empty.hint')}</p>
               <Link href="/bills/upload">
-                <Button className="mt-4 bg-blue-600 hover:bg-blue-700">
+                <Button className="mt-4 cursor-pointer">
                   <Upload className="w-4 h-4 mr-2" />
                   {t('bills.uploadFirst')}
                 </Button>

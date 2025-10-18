@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { UnifiedAlerts } from '@/components/alerts/UnifiedAlerts';
 import { TodayDashboard } from './_components/TodayDashboard';
 import { PageHeader } from '@/components/PageHeader';
+import { MissingPriceAlert } from '@/components/MissingPriceAlert';
 import { Sun, Cloud, Moon } from 'lucide-react';
 
 /**
@@ -47,6 +48,7 @@ export default async function TodayPage() {
         icon={GreetingIcon}
       />
 
+      <MissingPriceAlert />
       <UnifiedAlerts />
       <TodayDashboard />
     </div>

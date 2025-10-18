@@ -108,128 +108,130 @@ export default function DlcPage() {
   return (
     <div className="space-y-6">
       {/* Header with gradient background */}
-      <div className="relative">
-        <PageHeader
-          title="Best Before Dates"
-          subtitle="Track product expiration dates"
-          icon={Calendar}
-        />
-        {/* Scan Label Button - positioned absolutely over the header */}
-        <div className="absolute top-6 right-6">
-          <Link href="/dlc/upload">
-            <Button className="gap-2 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm shadow-lg">
-              <Upload className="h-4 w-4" />
-              Scan Label
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Best Before Dates"
+        subtitle="Track product expiration dates"
+        icon={Calendar}
+      />
 
-      <div className="flex gap-2">
-        <Button
-          variant={filter === "active" ? "default" : "outline"}
-          onClick={() => setFilter("active")}
-        >
-          Active
-        </Button>
-        <Button
-          variant={filter === "expiring" ? "default" : "outline"}
-          onClick={() => setFilter("expiring")}
-        >
-          <AlertTriangle className="mr-2 h-4 w-4" />
-          Expiring Soon
-        </Button>
-        <Button
-          variant={filter === "all" ? "default" : "outline"}
-          onClick={() => setFilter("all")}
-        >
-          All
-        </Button>
-      </div>
-
-      {loading ? (
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-gray-500">Loading...</p>
-          </CardContent>
-        </Card>
-      ) : dlcs.length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-gray-500">No expiration dates found</p>
-              <Link href="/dlc/upload">
-                <Button className="mt-4" variant="outline">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Scan your first label
-                </Button>
-              </Link>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button
+                variant={filter === "active" ? "default" : "outline"}
+                onClick={() => setFilter("active")}
+                className="cursor-pointer"
+              >
+                Active
+              </Button>
+              <Button
+                variant={filter === "expiring" ? "default" : "outline"}
+                onClick={() => setFilter("expiring")}
+                className="cursor-pointer"
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Expiring Soon
+              </Button>
+              <Button
+                variant={filter === "all" ? "default" : "outline"}
+                onClick={() => setFilter("all")}
+                className="cursor-pointer"
+              >
+                All
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {dlcs.map((dlc) => (
-            <Card key={dlc.id}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
-                      <Package className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{dlc.product.name}</h3>
-                      <div className="mt-1 flex items-center gap-4 text-sm text-gray-600">
-                        <span>
-                          {dlc.quantity} {dlc.unit}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Expires: {new Date(dlc.expirationDate).toLocaleDateString()}
-                        </span>
-                        {dlc.batchNumber && (
-                          <>
-                            <span>•</span>
-                            <span>Lot: {dlc.batchNumber}</span>
-                          </>
-                        )}
-                        {dlc.supplier && (
-                          <>
-                            <span>•</span>
-                            <span>{dlc.supplier}</span>
-                          </>
-                        )}
+            <Link href="/dlc/upload">
+              <Button className="gap-2 cursor-pointer">
+                <Upload className="h-4 w-4" />
+                Scan Label
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+
+          {loading ? (
+            <div className="py-8">
+              <p className="text-center text-gray-500">Loading...</p>
+            </div>
+          ) : dlcs.length === 0 ? (
+            <div className="py-8">
+              <div className="text-center">
+                <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-gray-500">No expiration dates found</p>
+                <Link href="/dlc/upload">
+                  <Button className="mt-4 cursor-pointer" variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Scan your first label
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {dlcs.map((dlc) => (
+                <div key={dlc.id} className="border rounded-lg p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
+                        <Package className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{dlc.product.name}</h3>
+                        <div className="mt-1 flex items-center gap-4 text-sm text-gray-600">
+                          <span>
+                            {dlc.quantity} {dlc.unit}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Expires: {new Date(dlc.expirationDate).toLocaleDateString()}
+                          </span>
+                          {dlc.batchNumber && (
+                            <>
+                              <span>•</span>
+                              <span>Lot: {dlc.batchNumber}</span>
+                            </>
+                          )}
+                          {dlc.supplier && (
+                            <>
+                              <span>•</span>
+                              <span>{dlc.supplier}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(dlc)}
-                    {dlc.status === "ACTIVE" && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleConsumed(dlc.id)}
-                        >
-                          Mark Consumed
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDiscarded(dlc.id)}
-                        >
-                          Discard
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(dlc)}
+                      {dlc.status === "ACTIVE" && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleConsumed(dlc.id)}
+                            className="cursor-pointer"
+                          >
+                            Mark Consumed
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDiscarded(dlc.id)}
+                            className="cursor-pointer"
+                          >
+                            Discard
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

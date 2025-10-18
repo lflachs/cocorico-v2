@@ -2,15 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCompositeProduct } from '@/lib/services/product.service';
 import { compositeProductSchema } from '@/lib/validations/product.schema';
 import { getCompositeProducts } from '@/lib/queries/product.queries';
+import { calculateCompositeProductPrice } from '@/lib/utils/composite-pricing';
 
 /**
  * GET /api/composite-products
- * Get all composite products with their ingredients
+ * Get all composite products with their ingredients and calculated prices
  */
 export async function GET() {
   try {
     const compositeProducts = await getCompositeProducts();
-    return NextResponse.json(compositeProducts);
+
+    // Calculate price for each composite product
+    const productsWithPrices = await Promise.all(
+      compositeProducts.map(async (product) => {
+        try {
+          const calculatedPrice = await calculateCompositeProductPrice(product.id);
+          return {
+            ...product,
+            calculatedUnitPrice: calculatedPrice,
+          };
+        } catch (error) {
+          console.error(`Error calculating price for ${product.name}:`, error);
+          return {
+            ...product,
+            calculatedUnitPrice: 0,
+          };
+        }
+      })
+    );
+
+    return NextResponse.json(productsWithPrices);
   } catch (error) {
     console.error('Error fetching composite products:', error);
     return NextResponse.json(

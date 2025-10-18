@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { VoiceAssistant } from '@/components/voice/VoiceAssistant';
 import Link from 'next/link';
+import { CreateButton } from '@/components/CreateButton';
 
 /**
  * Comprehensive Inventory View Component
@@ -183,9 +184,7 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
 
   const exportStock = () => {
     const csv = [
-      ['Product', 'Quantity', 'Unit', 'Unit Price', 'Total Value', 'Par Level', 'Status'].join(
-        ','
-      ),
+      ['Product', 'Quantity', 'Unit', 'Unit Price', 'Total Value', 'Par Level', 'Status'].join(','),
       ...products.map((p) => {
         const status = getStockStatus(p);
         return [
@@ -222,278 +221,270 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
       <div className="space-y-6">
         {/* Stock Valuation Summary */}
         <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Euro className="w-5 h-5 text-green-600" />
-            {t('inventory.value.title')}
-          </CardTitle>
-          <CardDescription>{t('inventory.value.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-green-50 border border-green-100 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {calculateStockValue().toFixed(2)} €
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Euro className="h-5 w-5 text-green-600" />
+              {t('inventory.value.title')}
+            </CardTitle>
+            <CardDescription>{t('inventory.value.description')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-green-100 bg-green-50 p-4 text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  {calculateStockValue().toFixed(2)} €
+                </div>
+                <p className="mt-1 text-sm font-medium text-green-700">
+                  {t('inventory.value.total')}
+                </p>
               </div>
-              <p className="text-sm text-green-700 font-medium mt-1">
-                {t('inventory.value.total')}
-              </p>
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600">{productsWithValue.length}</div>
+                <p className="mt-1 text-sm font-medium text-blue-700">
+                  {t('inventory.value.valued')}
+                </p>
+              </div>
+              <div className="rounded-lg border border-purple-100 bg-purple-50 p-4 text-center">
+                <div className="text-2xl font-bold text-purple-600">{avgValue.toFixed(2)} €</div>
+                <p className="mt-1 text-sm font-medium text-purple-700">
+                  {t('inventory.value.average')}
+                </p>
+              </div>
             </div>
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{productsWithValue.length}</div>
-              <p className="text-sm text-blue-700 font-medium mt-1">
-                {t('inventory.value.valued')}
-              </p>
-            </div>
-            <div className="bg-purple-50 border border-purple-100 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">{avgValue.toFixed(2)} €</div>
-              <p className="text-sm text-purple-700 font-medium mt-1">
-                {t('inventory.value.average')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Main Inventory Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <span className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              {t('inventory.title')}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/inventory/new">
+        {/* Main Inventory Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <span className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                {t('inventory.title')}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/inventory/new">
+                  <CreateButton>{t('inventory.addProduct')}</CreateButton>
+                </Link>
                 <Button
+                  onClick={exportStock}
+                  variant="outline"
                   size="sm"
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                  className="cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('inventory.addProduct')}</span>
+                  <Download className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('inventory.export')}</span>
                 </Button>
-              </Link>
-              <Button
-                onClick={fetchProducts}
-                variant="outline"
-                size="sm"
-                disabled={loading}
-                className="cursor-pointer"
-              >
-                <RefreshCw className={`w-4 h-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{t('inventory.refresh')}</span>
-              </Button>
-              <Button
-                onClick={exportStock}
-                variant="outline"
-                size="sm"
-                className="cursor-pointer"
-              >
-                <Download className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t('inventory.export')}</span>
-              </Button>
+              </div>
+            </CardTitle>
+            <CardDescription>{t('inventory.description')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Search */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                <Input
+                  placeholder={t('inventory.search')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          </CardTitle>
-          <CardDescription>{t('inventory.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Search */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder={t('inventory.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
 
-          {/* Products Table */}
-          {filteredProducts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-2 font-medium">
-                      {t('inventory.table.product')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium">
-                      {t('inventory.table.quantity')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium">
-                      {t('inventory.table.unit')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium hidden xl:table-cell">
-                      {t('inventory.table.parLevel')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium hidden lg:table-cell">
-                      {t('inventory.table.status')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium hidden lg:table-cell">
-                      {t('inventory.table.unitPrice')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium hidden md:table-cell">
-                      {t('inventory.table.totalValue')}
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium">
-                      {t('inventory.table.actions')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="border-b hover:bg-gray-50">
-                      {/* Product Name */}
-                      <td className="py-3 px-2 font-medium max-w-0 w-1/3">
-                        {editingProduct === product.id ? (
-                          <Input
-                            value={editValues.name}
-                            onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                            className="w-full text-xs"
-                          />
-                        ) : (
-                          <div className="truncate pr-2" title={product.name}>
-                            {product.name}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Quantity */}
-                      <td className="py-3 px-2">
-                        {editingProduct === product.id ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={editValues.quantity}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                quantity: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                            className="w-20 text-xs"
-                          />
-                        ) : (
-                          <span className="font-mono">{product.quantity.toFixed(1)}</span>
-                        )}
-                      </td>
-
-                      {/* Unit */}
-                      <td className="py-3 px-2">
-                        <Badge variant="outline" className="text-xs">
-                          {product.unit}
-                        </Badge>
-                      </td>
-
-                      {/* Par Level */}
-                      <td className="py-3 px-2 hidden xl:table-cell">
-                        {product.trackable && product.parLevel ? (
-                          <span className="font-mono">{product.parLevel.toFixed(1)}</span>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3 px-2 hidden lg:table-cell">
-                        {getStatusBadge(getStockStatus(product))}
-                      </td>
-
-                      {/* Unit Price */}
-                      <td className="py-3 px-2 hidden lg:table-cell">
-                        {editingProduct === product.id ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={editValues.unitPrice ?? ''}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                unitPrice: e.target.value === '' ? null : parseFloat(e.target.value),
-                              })
-                            }
-                            className="w-20 text-xs"
-                            placeholder="€"
-                          />
-                        ) : (
-                          <span className="font-mono">
-                            {product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Total Value */}
-                      <td className="py-3 px-2 hidden md:table-cell">
-                        <span className="font-mono font-medium text-green-600">
-                          {product.unitPrice
-                            ? `${calculateTotalValue(product).toFixed(2)} €`
-                            : '-'}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-2">
-                        {editingProduct === product.id ? (
-                          <div className="flex gap-1">
-                            <Button
-                              onClick={() => saveEdit(product.id)}
-                              size="sm"
-                              className="h-6 w-6 p-0 bg-green-600 hover:bg-green-700"
-                            >
-                              <Check className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              onClick={cancelEditing}
-                              size="sm"
-                              variant="outline"
-                              className="h-6 w-6 p-0"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-1">
-                            <Button
-                              onClick={() => startEditing(product)}
-                              size="sm"
-                              variant="outline"
-                              className="h-6 w-6 p-0"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              onClick={() => deleteProduct(product.id, product.name)}
-                              size="sm"
-                              variant="outline"
-                              className="h-6 w-6 p-0 text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
+            {/* Products Table */}
+            {filteredProducts.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-2 py-3 text-left font-medium">
+                        {t('inventory.table.product')}
+                      </th>
+                      <th className="px-2 py-3 text-left font-medium">
+                        {t('inventory.table.quantity')}
+                      </th>
+                      <th className="px-2 py-3 text-left font-medium">
+                        {t('inventory.table.unit')}
+                      </th>
+                      <th className="hidden px-2 py-3 text-left font-medium xl:table-cell">
+                        {t('inventory.table.parLevel')}
+                      </th>
+                      <th className="hidden px-2 py-3 text-left font-medium lg:table-cell">
+                        {t('inventory.table.status')}
+                      </th>
+                      <th className="hidden px-2 py-3 text-left font-medium lg:table-cell">
+                        {t('inventory.table.unitPrice')}
+                      </th>
+                      <th className="hidden px-2 py-3 text-left font-medium md:table-cell">
+                        {t('inventory.table.totalValue')}
+                      </th>
+                      <th className="px-2 py-3 text-left font-medium">
+                        {t('inventory.table.actions')}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500">
-                {searchQuery ? t('inventory.noResults') : t('inventory.empty')}
-              </p>
-              {searchQuery && (
-                <Button onClick={() => setSearchQuery('')} variant="outline" size="sm" className="mt-2">
-                  {t('inventory.clearSearch')}
-                </Button>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => (
+                      <tr key={product.id} className="border-b hover:bg-gray-50">
+                        {/* Product Name */}
+                        <td className="w-1/3 max-w-0 px-2 py-3 font-medium">
+                          {editingProduct === product.id ? (
+                            <Input
+                              value={editValues.name}
+                              onChange={(e) =>
+                                setEditValues({ ...editValues, name: e.target.value })
+                              }
+                              className="w-full text-xs"
+                            />
+                          ) : (
+                            <div className="truncate pr-2" title={product.name}>
+                              {product.name}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Quantity */}
+                        <td className="px-2 py-3">
+                          {editingProduct === product.id ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editValues.quantity}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  quantity: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                              className="w-20 text-xs"
+                            />
+                          ) : (
+                            <span className="font-mono">{product.quantity.toFixed(1)}</span>
+                          )}
+                        </td>
+
+                        {/* Unit */}
+                        <td className="px-2 py-3">
+                          <Badge variant="outline" className="text-xs">
+                            {product.unit}
+                          </Badge>
+                        </td>
+
+                        {/* Par Level */}
+                        <td className="hidden px-2 py-3 xl:table-cell">
+                          {product.trackable && product.parLevel ? (
+                            <span className="font-mono">{product.parLevel.toFixed(1)}</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="hidden px-2 py-3 lg:table-cell">
+                          {getStatusBadge(getStockStatus(product))}
+                        </td>
+
+                        {/* Unit Price */}
+                        <td className="hidden px-2 py-3 lg:table-cell">
+                          {editingProduct === product.id ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editValues.unitPrice ?? ''}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  unitPrice:
+                                    e.target.value === '' ? null : parseFloat(e.target.value),
+                                })
+                              }
+                              className="w-20 text-xs"
+                              placeholder="€"
+                            />
+                          ) : (
+                            <span className="font-mono">
+                              {product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Total Value */}
+                        <td className="hidden px-2 py-3 md:table-cell">
+                          <span className="font-mono font-medium text-green-600">
+                            {product.unitPrice
+                              ? `${calculateTotalValue(product).toFixed(2)} €`
+                              : '-'}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-2 py-3">
+                          {editingProduct === product.id ? (
+                            <div className="flex gap-1">
+                              <Button
+                                onClick={() => saveEdit(product.id)}
+                                size="sm"
+                                className="h-6 w-6 bg-green-600 p-0 hover:bg-green-700"
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={cancelEditing}
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-1">
+                              <Button
+                                onClick={() => startEditing(product)}
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => deleteProduct(product.id, product.name)}
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0 text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <Package className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                <p className="text-gray-500">
+                  {searchQuery ? t('inventory.noResults') : t('inventory.empty')}
+                </p>
+                {searchQuery && (
+                  <Button
+                    onClick={() => setSearchQuery('')}
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                  >
+                    {t('inventory.clearSearch')}
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );

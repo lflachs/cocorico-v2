@@ -21,6 +21,7 @@ import {
 import { Trash2, Check, Info } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { toast } from 'sonner';
+import { SUPPORTED_UNITS, UNIT_LABELS } from '@/lib/constants/units';
 
 /**
  * Dish Edit Modal

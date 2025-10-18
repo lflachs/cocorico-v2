@@ -48,7 +48,7 @@ export function DishesListView() {
     setLoading(true);
     try {
       const { getDishesAction } = await import('@/lib/actions/dish.actions');
-      const result = await getDishesAction();
+      const result = await getDishesAction({ includeRecipe: true });
       if (result.success && result.data) {
         setDishes(result.data as Dish[]);
         setFilteredDishes(result.data as Dish[]);
@@ -244,36 +244,42 @@ export function DishesListView() {
                             {dish.recipeIngredients?.length || 0}
                           </span>
                         </div>
-                        {cost > 0 && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">{t('menu.dish.cost')}</span>
-                            <span className="font-medium">€{cost.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {sellingPrice && (
-                          <>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                {t('menu.dishWizard.sellingPrice')}
-                              </span>
-                              <span className="font-medium">€{sellingPrice.toFixed(2)}</span>
-                            </div>
-                            {margin !== null && (
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  {t('menu.dishWizard.margin')}
-                                </span>
-                                <span
-                                  className={`font-semibold ${
-                                    margin > 0 ? 'text-green-600' : 'text-red-600'
-                                  }`}
-                                >
-                                  {margin.toFixed(1)}%
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )}
+
+                        {/* Cost - Always show */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{t('menu.dish.cost')}</span>
+                          <span className={`font-medium ${cost === 0 ? 'text-muted-foreground' : ''}`}>
+                            €{cost.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Selling Price - Always show */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {t('menu.dishWizard.sellingPrice')}
+                          </span>
+                          <span className={`font-medium ${!sellingPrice ? 'text-muted-foreground' : ''}`}>
+                            {sellingPrice ? `€${sellingPrice.toFixed(2)}` : '-'}
+                          </span>
+                        </div>
+
+                        {/* Margin - Show when both cost and selling price exist */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {t('menu.dishWizard.margin')}
+                          </span>
+                          {margin !== null && cost > 0 && sellingPrice ? (
+                            <span
+                              className={`font-semibold ${
+                                margin > 0 ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
+                              {margin.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

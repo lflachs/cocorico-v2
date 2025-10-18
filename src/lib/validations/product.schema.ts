@@ -11,8 +11,8 @@ export const productSchema = z.object({
     .min(1, 'Product name is required')
     .max(255, 'Product name must be less than 255 characters'),
   quantity: z.number().nonnegative('Quantity cannot be negative'),
-  unit: z.enum(['KG', 'L', 'PC'], {
-    errorMap: () => ({ message: 'Unit must be KG, L, or PC' }),
+  unit: z.enum(['KG', 'G', 'L', 'ML', 'CL', 'PC', 'BUNCH', 'CLOVE'], {
+    errorMap: () => ({ message: 'Unit must be KG, G, L, ML, CL, PC, BUNCH, or CLOVE' }),
   }),
   unitPrice: z.number().positive().optional(),
   totalValue: z.number().positive().optional(),
@@ -34,8 +34,8 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export const compositeIngredientSchema = z.object({
   baseProductId: z.string().min(1, 'Base product is required'),
   quantity: z.number().positive('Quantity must be positive'),
-  unit: z.enum(['KG', 'L', 'PC'], {
-    errorMap: () => ({ message: 'Unit must be KG, L, or PC' }),
+  unit: z.enum(['KG', 'G', 'L', 'ML', 'CL', 'PC', 'BUNCH', 'CLOVE'], {
+    errorMap: () => ({ message: 'Unit must be KG, G, L, ML, CL, PC, BUNCH, or CLOVE' }),
   }),
 });
 
@@ -45,8 +45,8 @@ export const compositeProductSchema = z.object({
     .min(1, 'Product name is required')
     .max(255, 'Product name must be less than 255 characters'),
   yieldQuantity: z.number().positive('Yield quantity must be positive'),
-  unit: z.enum(['KG', 'L', 'PC'], {
-    errorMap: () => ({ message: 'Unit must be KG, L, or PC' }),
+  unit: z.enum(['KG', 'G', 'L', 'ML', 'CL', 'PC', 'BUNCH', 'CLOVE'], {
+    errorMap: () => ({ message: 'Unit must be KG, G, L, ML, CL, PC, BUNCH, or CLOVE' }),
   }),
   unitPrice: z.number().positive().optional(),
   category: z.string().max(50).optional(),

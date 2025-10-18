@@ -79,9 +79,17 @@ model Product {
 }
 
 enum Unit {
-  KG  // Kilograms
-  L   // Liters
-  PC  // Pieces
+  // Weight
+  KG    // Kilograms
+  G     // Grams
+  // Volume
+  L     // Liters
+  ML    // Milliliters
+  CL    // Centiliters
+  // Count
+  PC    // Pieces
+  BUNCH // Bunch (e.g., herbs)
+  CLOVE // Clove (e.g., garlic)
 }
 
 // ============================================================================

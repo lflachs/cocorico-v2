@@ -23,6 +23,7 @@ import { useLanguage } from '@/providers/LanguageProvider';
 import { toast } from 'sonner';
 import { CompositeProductWizard } from '../../inventory/_components/CompositeProductWizard';
 import { Badge } from '@/components/ui/badge';
+import { SUPPORTED_UNITS, UNIT_LABELS } from '@/lib/constants/units';
 
 /**
  * Dish Wizard
@@ -395,9 +396,11 @@ export function DishWizard({ open, onOpenChange, sectionId, onSuccess }: DishWiz
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="KG">KG</SelectItem>
-                      <SelectItem value="L">L</SelectItem>
-                      <SelectItem value="PC">PC</SelectItem>
+                      {SUPPORTED_UNITS.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {u} - {UNIT_LABELS[u]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

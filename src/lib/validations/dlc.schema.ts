@@ -6,7 +6,7 @@ export const dlcSchema = z.object({
     required_error: "Expiration date is required",
   }),
   quantity: z.coerce.number().positive("Quantity must be positive"),
-  unit: z.enum(["KG", "L", "PC"]),
+  unit: z.enum(["KG", "G", "L", "ML", "CL", "PC", "BUNCH", "CLOVE"]),
   batchNumber: z.string().optional(),
   supplier: z.string().optional(),
   status: z.enum(["ACTIVE", "CONSUMED", "EXPIRED", "DISCARDED"]).default("ACTIVE"),

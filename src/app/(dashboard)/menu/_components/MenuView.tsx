@@ -8,6 +8,7 @@ import { DishesListView } from './DishesListView';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/PageHeader';
+import { MissingPriceAlert } from '@/components/MissingPriceAlert';
 import { ChefHat, Beaker, UtensilsCrossed } from 'lucide-react';
 
 /**
@@ -41,6 +42,8 @@ export function MenuView() {
         subtitle={t('recipes.subtitle')}
         icon={ChefHat}
       />
+
+      <MissingPriceAlert />
 
       {view === 'list' ? (
         <>

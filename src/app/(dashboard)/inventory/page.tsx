@@ -4,6 +4,7 @@ import { Package } from 'lucide-react';
 import { getTranslation } from '@/lib/i18n';
 import { cookies } from 'next/headers';
 import { PageHeader } from '@/components/PageHeader';
+import { MissingPriceAlert } from '@/components/MissingPriceAlert';
 
 /**
  * Inventory Page (Server Component)
@@ -27,6 +28,7 @@ export default async function InventoryPage() {
         icon={Package}
       />
 
+      <MissingPriceAlert />
       <InventoryView initialProducts={products} />
     </div>
   );

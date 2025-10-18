@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { SUPPORTED_UNITS, UNIT_LABELS } from '@/lib/constants/units';
 
 type AddProductDialogProps = {
   open: boolean;
@@ -132,9 +133,11 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="KG">KG</SelectItem>
-                  <SelectItem value="L">L</SelectItem>
-                  <SelectItem value="PC">PC</SelectItem>
+                  {SUPPORTED_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit} - {UNIT_LABELS[unit]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

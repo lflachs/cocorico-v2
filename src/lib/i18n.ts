@@ -243,6 +243,7 @@ export const translations = {
     'menu.delete.error': 'Error deleting. Please try again.',
     'menu.update.success': 'Saved successfully',
     'menu.update.error': 'Error saving. Please try again.',
+    'menu.edit': 'Edit',
     // Menu Pricing
     'menu.pricing.title': 'Menu Pricing',
     'menu.pricing.subtitle': 'Configure how this menu is priced',
@@ -276,6 +277,8 @@ export const translations = {
     'prepared.stock': 'Stock',
     'prepared.ingredients': 'Ingredients',
     'prepared.recipe': 'Recipe',
+    'prepared.calculatedPrice': 'Calculated Price',
+    'prepared.missingIngredientPrices': 'Missing ingredient prices',
     'prepared.delete.confirm':
       'Are you sure you want to delete this prepared ingredient? This cannot be undone.',
     'prepared.delete.success': 'Prepared ingredient deleted successfully',
@@ -397,6 +400,12 @@ export const translations = {
     'dlc.msg.processed': 'Processed',
     // Disputes
     'disputes.noSupplier': 'Unknown supplier',
+    // Alerts
+    'alerts.missingPrices.title': 'Missing Product Prices',
+    'alerts.missingPrices.descriptionSingular':
+      '1 product is missing a unit price. This may affect cost calculations for dishes and menus.',
+    'alerts.missingPrices.descriptionPlural':
+      '{count} products are missing unit prices. This may affect cost calculations for dishes and menus.',
   },
   fr: {
     'app.title': 'Cocorico Gestion de Stock',
@@ -676,6 +685,7 @@ export const translations = {
     'menu.delete.error': 'Erreur lors de la suppression. Veuillez réessayer.',
     'menu.update.success': 'Enregistré avec succès',
     'menu.update.error': "Erreur lors de l'enregistrement. Veuillez réessayer.",
+    'menu.edit': 'Modifier',
     // Tarification Menu
     'menu.pricing.title': 'Tarification du Menu',
     'menu.pricing.subtitle': 'Configurez comment ce menu est tarifé',
@@ -710,6 +720,8 @@ export const translations = {
     'prepared.stock': 'Stock',
     'prepared.ingredients': 'Ingrédients',
     'prepared.recipe': 'Recette',
+    'prepared.calculatedPrice': 'Prix Calculé',
+    'prepared.missingIngredientPrices': 'Prix des ingrédients manquants',
     'prepared.delete.confirm':
       'Êtes-vous sûr de vouloir supprimer cet ingrédient préparé ? Cette action est irréversible.',
     'prepared.delete.success': 'Ingrédient préparé supprimé avec succès',
@@ -833,6 +845,12 @@ export const translations = {
     'dlc.msg.processed': 'Traité',
     // Disputes
     'disputes.noSupplier': 'Fournisseur inconnu',
+    // Alerts
+    'alerts.missingPrices.title': 'Prix de Produits Manquants',
+    'alerts.missingPrices.descriptionSingular':
+      '1 produit n\'a pas de prix unitaire. Cela peut affecter les calculs de coûts pour les plats et menus.',
+    'alerts.missingPrices.descriptionPlural':
+      '{count} produits n\'ont pas de prix unitaires. Cela peut affecter les calculs de coûts pour les plats et menus.',
   },
 } as const;
 

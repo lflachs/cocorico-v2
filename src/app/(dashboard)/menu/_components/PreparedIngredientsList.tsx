@@ -35,6 +35,7 @@ type CompositeProduct = {
   yieldQuantity: number | null;
   category: string | null;
   compositeIngredients: CompositeIngredient[];
+  calculatedUnitPrice?: number;
 };
 
 export function PreparedIngredientsList() {
@@ -185,6 +186,20 @@ export function PreparedIngredientsList() {
                             <span className="font-medium">{t('prepared.ingredients')}:</span>{' '}
                             {product.compositeIngredients.length}
                           </div>
+                          {product.calculatedUnitPrice !== undefined && (
+                            <div className="text-sm text-gray-700 mt-1">
+                              <span className="font-medium">{t('prepared.calculatedPrice')}:</span>{' '}
+                              {product.calculatedUnitPrice > 0 ? (
+                                <span className="text-green-600 font-semibold">
+                                  €{product.calculatedUnitPrice.toFixed(2)} / {product.unit}
+                                </span>
+                              ) : (
+                                <span className="text-orange-500 text-xs">
+                                  {t('prepared.missingIngredientPrices')}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <Button

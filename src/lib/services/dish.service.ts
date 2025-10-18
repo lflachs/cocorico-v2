@@ -16,6 +16,7 @@ export type DishWithRecipe = Dish & {
       name: string;
       unit: string;
       quantity: number;
+      unitPrice: number | null;
     };
   })[];
 };
@@ -46,6 +47,7 @@ export async function getDishes(query: DishQuery = {}): Promise<DishWithRecipe[]
                   name: true,
                   unit: true,
                   quantity: true,
+                  unitPrice: true,
                 },
               },
             },
@@ -74,6 +76,7 @@ export async function getDishById(id: string): Promise<DishWithRecipe | null> {
               name: true,
               unit: true,
               quantity: true,
+              unitPrice: true,
             },
           },
         },

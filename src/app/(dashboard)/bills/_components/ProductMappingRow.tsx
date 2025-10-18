@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle, Plus, X } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { SUPPORTED_UNITS, UNIT_LABELS } from '@/lib/constants/units';
 
 /**
  * Product Mapping Row
@@ -39,8 +40,6 @@ type ProductMappingRowProps = {
   onMapping: (mappedProductId: string | undefined) => void;
   onProductUpdate: (productId: string, updates: Partial<ExtractedProduct>) => void;
 };
-
-const ALLOWED_UNITS = ['KG', 'L', 'PC'];
 
 export function ProductMappingRow({ product, onMapping, onProductUpdate }: ProductMappingRowProps) {
   const { t } = useLanguage();
@@ -103,7 +102,7 @@ export function ProductMappingRow({ product, onMapping, onProductUpdate }: Produ
   };
 
   const isMapped = !!product.mappedProductId;
-  const hasValidUnit = ALLOWED_UNITS.includes(editedUnit as any);
+  const hasValidUnit = SUPPORTED_UNITS.includes(editedUnit as any);
 
   const calculatedTotal = editedQuantity * editedUnitPrice;
 
@@ -173,9 +172,9 @@ export function ProductMappingRow({ product, onMapping, onProductUpdate }: Produ
                 <SelectValue placeholder={t('bills.confirm.unit')} />
               </SelectTrigger>
               <SelectContent>
-                {ALLOWED_UNITS.map((unit) => (
+                {SUPPORTED_UNITS.map((unit) => (
                   <SelectItem key={unit} value={unit}>
-                    {unit}
+                    {unit} - {UNIT_LABELS[unit]}
                   </SelectItem>
                 ))}
               </SelectContent>
