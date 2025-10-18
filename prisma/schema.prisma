@@ -53,6 +53,10 @@ model Product {
   parLevel  Float?
   category  String?
 
+  // Composite/Prepared product features
+  isComposite Boolean @default(false) // If true, this product is made from other products
+  yieldQuantity Float? // How much this recipe produces (e.g., 1 L of crème pâtissière)
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,8 +68,13 @@ model Product {
   disputeProducts   DisputeProduct[]
   dlcs              DLC[]
 
+  // Composite product relations
+  compositeIngredients CompositeIngredient[] @relation("CompositeProduct") // Ingredients needed to make this product
+  usedInComposites     CompositeIngredient[] @relation("BaseIngredient")   // Composites that use this as ingredient
+
   @@index([name])
   @@index([category])
+  @@index([isComposite])
   @@map("products")
 }
 
@@ -73,6 +82,30 @@ enum Unit {
   KG  // Kilograms
   L   // Liters
   PC  // Pieces
+}
+
+// ============================================================================
+// COMPOSITE/PREPARED PRODUCTS
+// ============================================================================
+
+model CompositeIngredient {
+  id                String @id @default(cuid())
+  compositeProductId String // The prepared product (e.g., crème pâtissière)
+  baseProductId     String // The ingredient needed (e.g., milk)
+  quantity          Float  // Amount needed
+  unit              Unit   // Unit of measurement
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  compositeProduct Product @relation("CompositeProduct", fields: [compositeProductId], references: [id], onDelete: Cascade)
+  baseProduct      Product @relation("BaseIngredient", fields: [baseProductId], references: [id], onDelete: Restrict)
+
+  @@index([compositeProductId])
+  @@index([baseProductId])
+  @@map("composite_ingredients")
 }
 
 // ============================================================================
