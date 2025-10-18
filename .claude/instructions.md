@@ -136,6 +136,99 @@ className="shadow-none"
 - Native `<a>` tags already have pointer cursor
 - Some shadcn/ui components may include it
 
+### Page Header Pattern
+
+**CRITICAL**: Use consistent gradient headers for main pages to maintain visual cohesion:
+
+```typescript
+// ✅ GOOD: Consistent page header with gradient
+<div className="bg-gradient-to-br from-primary via-primary/95 to-secondary rounded-xl p-6 md:p-8 text-white shadow-xl">
+  <div className="flex items-start justify-between">
+    <div className="flex-1">
+      <h1 className="text-3xl md:text-4xl font-bold mb-2">
+        {t('page.title')}
+      </h1>
+      <p className="text-primary-foreground/90 text-base md:text-lg max-w-3xl">
+        {t('page.subtitle')}
+      </p>
+    </div>
+    <IconComponent className="w-12 h-12 md:w-16 md:h-16 text-white/20 hidden sm:block" />
+  </div>
+</div>
+
+// ❌ BAD: Inconsistent or plain header
+<h1>Page Title</h1>
+<div className="bg-blue-500 p-4">
+  <h1>Title</h1>
+</div>
+```
+
+**When to use the page header pattern:**
+- Main dashboard pages (Today, Inventory, Menu, DLC, Bills, Disputes)
+- Top-level section pages
+- Feature overview pages
+
+**Header Components:**
+1. **Gradient background**: `bg-gradient-to-br from-primary via-primary/95 to-secondary`
+2. **Padding**: `p-6 md:p-8` (responsive)
+3. **Text color**: `text-white` with proper contrast
+4. **Shadow**: `shadow-xl` for depth
+5. **Rounded corners**: `rounded-xl`
+6. **Icon**: Use relevant Lucide icon at `w-12 h-12 md:w-16 md:h-16 text-white/20 hidden sm:block`
+7. **Title**: `text-3xl md:text-4xl font-bold mb-2`
+8. **Subtitle**: `text-primary-foreground/90 text-base md:text-lg max-w-3xl`
+
+### Contextual Help & Hints
+
+**CRITICAL**: Use contextual, inline hints instead of large help sections.
+
+**Modern UX Approach:**
+1. **Empty states** - Clear messaging with CTAs when no data exists
+2. **Tooltips** - Small info icons with hover/tap tooltips for specific features
+3. **Placeholder text** - Descriptive placeholders in inputs
+4. **Inline hints** - Small muted text below fields/sections
+5. **Progressive disclosure** - Show help exactly when and where needed
+
+```typescript
+// ✅ GOOD: Empty state with clear guidance
+{items.length === 0 && (
+  <div className="text-center py-12">
+    <ChefHat className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+    <h3 className="text-lg font-semibold mb-2">No dishes yet</h3>
+    <p className="text-muted-foreground mb-4">
+      Create your first dish to start building your menu
+    </p>
+    <Button onClick={handleCreate}>Create Dish</Button>
+  </div>
+)}
+
+// ✅ GOOD: Inline hint
+<div>
+  <Label>Par Level</Label>
+  <Input type="number" placeholder="100" />
+  <p className="text-xs text-muted-foreground mt-1">
+    Minimum quantity to keep in stock
+  </p>
+</div>
+
+// ❌ BAD: Large help card taking up space
+<Card>
+  <CardContent>
+    <h3>Help Guide</h3>
+    <p>Long explanation...</p>
+    <p>More text...</p>
+    <p>Even more text...</p>
+  </CardContent>
+</Card>
+```
+
+**Contextual Help Principles:**
+1. **Just-in-time** - Show help when users need it, not upfront
+2. **Minimal** - Short, clear hints (1-2 sentences max)
+3. **Visual** - Use icons and empty states to guide users
+4. **Mobile-first** - Especially important on small screens
+5. **Progressive** - Start simple, add complexity as needed
+
 ---
 
 ## 🎯 Core Principles

@@ -6,10 +6,11 @@ import { MenuDetail } from './MenuDetail';
 import { PreparedIngredientsList } from './PreparedIngredientsList';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/PageHeader';
 import { ChefHat, Beaker } from 'lucide-react';
 
 /**
- * Menu View
+ * Menu View - Redesigned
  * Main component that manages different menu views with tabs
  */
 
@@ -33,36 +34,37 @@ export function MenuView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          {t('recipes.title')}
-        </h1>
-        <p className="mt-2 text-gray-600">
-          {t('recipes.subtitle')}
-        </p>
-      </div>
+      {/* Header with gradient background */}
+      <PageHeader
+        title={t('recipes.title')}
+        subtitle={t('recipes.subtitle')}
+        icon={ChefHat}
+      />
 
       {view === 'list' ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="menus" className="flex items-center gap-2">
-              <ChefHat className="w-4 h-4" />
-              {t('recipes.tabs.menuItems')}
-            </TabsTrigger>
-            <TabsTrigger value="prepared" className="flex items-center gap-2">
-              <Beaker className="w-4 h-4" />
-              {t('recipes.tabs.prepared')}
-            </TabsTrigger>
-          </TabsList>
+        <>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 shadow-md">
+              <TabsTrigger value="menus" className="flex items-center gap-2 cursor-pointer">
+                <ChefHat className="w-4 h-4" />
+                {t('recipes.tabs.menuItems')}
+              </TabsTrigger>
+              <TabsTrigger value="prepared" className="flex items-center gap-2 cursor-pointer">
+                <Beaker className="w-4 h-4" />
+                {t('recipes.tabs.prepared')}
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="menus" className="mt-6">
-            <MenuList onSelectMenu={handleSelectMenu} />
-          </TabsContent>
+            <TabsContent value="menus" className="mt-6">
+              <MenuList onSelectMenu={handleSelectMenu} />
+            </TabsContent>
 
-          <TabsContent value="prepared" className="mt-6">
-            <PreparedIngredientsList />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="prepared" className="mt-6">
+              <PreparedIngredientsList />
+            </TabsContent>
+          </Tabs>
+        </>
       ) : (
         <MenuDetail menuId={selectedMenuId!} onBack={handleBackToList} />
       )}

@@ -2,6 +2,8 @@ import { getTranslation } from '@/lib/i18n';
 import { cookies } from 'next/headers';
 import { UnifiedAlerts } from '@/components/alerts/UnifiedAlerts';
 import { TodayDashboard } from './_components/TodayDashboard';
+import { PageHeader } from '@/components/PageHeader';
+import { Sun, Cloud, Moon } from 'lucide-react';
 
 /**
  * Today Page - Main dashboard for daily operations
@@ -24,27 +26,26 @@ export default async function TodayPage() {
   // Get current hour for greeting
   const hour = today.getHours();
   let greetingKey: 'today.greeting.morning' | 'today.greeting.afternoon' | 'today.greeting.evening';
+  let GreetingIcon = Sun;
   if (hour < 12) {
     greetingKey = 'today.greeting.morning';
+    GreetingIcon = Sun;
   } else if (hour < 18) {
     greetingKey = 'today.greeting.afternoon';
+    GreetingIcon = Cloud;
   } else {
     greetingKey = 'today.greeting.evening';
+    GreetingIcon = Moon;
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-br from-primary via-primary/95 to-secondary rounded-xl p-6 md:p-8 text-white shadow-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-1">
-              {t(greetingKey)}, Nico! 👋
-            </h1>
-            <p className="text-primary-foreground/80 text-sm md:text-base">{formattedDate}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={<>{t(greetingKey)}, Nico!</>}
+        subtitle={formattedDate}
+        icon={GreetingIcon}
+      />
 
       <UnifiedAlerts />
       <TodayDashboard />

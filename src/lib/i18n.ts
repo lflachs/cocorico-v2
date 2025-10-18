@@ -162,6 +162,11 @@ export const translations = {
     // Menu pages
     'menu.title': 'Menu & Recipes',
     'menu.subtitle': 'Manage your menus, dishes and recipes',
+    'menu.help.title': 'About Menus & Recipes',
+    'menu.help.menus': '• Menus organize your dishes by categories (appetizers, mains, desserts). Create seasonal menus or special event menus.',
+    'menu.help.prepared': '• Prepared ingredients are composite items made from base ingredients (like sauces, stocks, or pastry creams). Track their recipes and stock.',
+    'menu.help.costing': '• Each dish automatically calculates its cost based on ingredient prices and shows you the profit margin when you set a selling price.',
+    'menu.help.show': 'Show Help Guide',
     'menu.createMenu': 'Create Menu',
     'menu.backToMenus': 'Back to Menus',
     'menu.menuList.title': 'Menus',
@@ -505,6 +510,11 @@ export const translations = {
     // Menu pages
     'menu.title': 'Menu & Recettes',
     'menu.subtitle': 'Gérez vos plats et recettes',
+    'menu.help.title': 'À propos des Menus & Recettes',
+    'menu.help.menus': '• Les menus organisent vos plats par catégories (entrées, plats, desserts). Créez des menus saisonniers ou pour événements spéciaux.',
+    'menu.help.prepared': '• Les ingrédients préparés sont des produits composites faits à partir d\'ingrédients de base (comme les sauces, les fonds ou les crèmes pâtissières). Suivez leurs recettes et stocks.',
+    'menu.help.costing': '• Chaque plat calcule automatiquement son coût basé sur les prix des ingrédients et vous montre la marge bénéficiaire quand vous définissez un prix de vente.',
+    'menu.help.show': 'Afficher le Guide d\'Aide',
     'menu.addDish': 'Ajouter Plat',
     'menu.refresh': 'Actualiser',
     'menu.search': 'Rechercher des plats...',
