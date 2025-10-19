@@ -15,20 +15,20 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, subtitle, icon: Icon, className = '' }: PageHeaderProps) {
   return (
-    <div className={`bg-gradient-to-br from-primary via-primary/95 to-secondary rounded-xl p-6 md:p-8 text-white shadow-xl ${className}`}>
+    <div
+      className={`from-primary via-primary/95 to-secondary rounded-xl bg-gradient-to-br p-6 text-white shadow-lg md:p-8 ${className}`}
+    >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2">
-            {title}
-          </h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="mb-1 text-2xl font-bold sm:text-3xl md:mb-2 md:text-4xl">{title}</h1>
           {subtitle && (
-            <p className="text-primary-foreground/90 text-sm sm:text-base md:text-lg max-w-3xl">
+            <p className="text-primary-foreground/90 max-w-3xl text-sm sm:text-base md:text-lg">
               {subtitle}
             </p>
           )}
         </div>
         {Icon && (
-          <Icon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white/20 shrink-0" />
+          <Icon className="h-8 w-8 shrink-0 text-white/20 sm:h-10 sm:w-10 md:h-12 md:w-12" />
         )}
       </div>
     </div>

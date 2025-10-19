@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileUpload } from '@/app/(dashboard)/bills/_components/FileUpload';
+import { FileUpload } from '@/app/(app)/bills/_components/FileUpload';
 import { toast } from 'sonner';
 
 /**
@@ -79,17 +79,15 @@ export default function DlcUploadPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <Link href="/dlc">
           <Button variant="ghost" className="mb-4 -ml-2">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Scan Best Before Date
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Scan Best Before Date</h1>
         <p className="mt-2 text-gray-600">Upload a photo of the product label</p>
       </div>
 
@@ -103,11 +101,9 @@ export default function DlcUploadPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">
-                  What will happen:
-                </h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 className="mb-2 font-semibold text-blue-900">What will happen:</h4>
+                <ul className="space-y-1 text-sm text-blue-800">
                   <li>• We extract the product name and expiration date from the label</li>
                   <li>• You review and match the product to your inventory</li>
                   <li>• The best before date is saved for tracking</li>
@@ -122,7 +118,7 @@ export default function DlcUploadPage() {
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Preparing...
                   </>
                 ) : (

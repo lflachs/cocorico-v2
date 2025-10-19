@@ -14,12 +14,12 @@ type TodayLayoutProps = {
 
 export default function TodayLayout({ children, stats, alerts, activities }: TodayLayoutProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
       {/* Main content */}
       {children}
 
       {/* Parallel route slots */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
         {stats}
         {alerts}
         {activities}

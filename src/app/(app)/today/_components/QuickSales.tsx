@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TrendingUp, Plus, Search } from 'lucide-react';
-import { SaleRecordDialog } from './SaleRecordDialog';
+import { SaleRecordDialog } from '@/components/sales';
 import { useLanguage } from '@/providers/LanguageProvider';
 
 /**
@@ -96,14 +96,14 @@ export function QuickSales() {
 
   return (
     <>
-      <Card className="shadow-md">
+      <Card className="shadow-md w-full overflow-hidden">
         <CardHeader className="bg-gradient-to-br from-success/5 via-transparent to-transparent">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-success" />
-            {t('today.quickSales.title')}
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-success flex-shrink-0" />
+            <span className="truncate">{t('today.quickSales.title')}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">{t('today.quickSales.loading')}</div>
           ) : dishes.length === 0 ? (
@@ -112,16 +112,16 @@ export function QuickSales() {
               <p className="text-sm mt-2">{t('today.quickSales.emptyHint')}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4 w-full overflow-hidden">
               {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type="text"
                   placeholder={t('menu.search') || 'Search dishes...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-background"
+                  className="pl-10 bg-background w-full"
                 />
               </div>
 
@@ -131,7 +131,7 @@ export function QuickSales() {
                   <p>{t('menu.noResults') || 'No dishes found'}</p>
                 </div>
               ) : (
-                <div className="grid gap-2 md:grid-cols-2">
+                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 w-full overflow-hidden">
                   {displayDishes.map((dish) => {
                     const todaySale = todaySales.find((s) => s.dishId === dish.id);
                     const soldToday = todaySale?.totalSold || 0;
@@ -139,21 +139,21 @@ export function QuickSales() {
                     return (
                       <div
                         key={dish.id}
-                        className="p-3 rounded-lg border border-border bg-card hover:shadow-md hover:border-primary/20 transition-all"
+                        className="p-2.5 sm:p-3 rounded-lg border border-border bg-card hover:shadow-md hover:border-primary/20 transition-all w-full min-w-0"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground truncate">{dish.name}</div>
-                            <div className="text-sm text-muted-foreground mt-0.5">
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="font-medium text-sm sm:text-base text-foreground truncate">{dish.name}</div>
+                            <div className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">
                               {t('today.quickSales.soldToday')}: <span className="font-semibold text-foreground">{soldToday}</span>
                             </div>
                           </div>
                           <Button
                             size="sm"
                             onClick={() => openSaleDialog(dish)}
-                            className="bg-gradient-to-br from-success/90 to-success hover:from-success hover:to-success/90 text-success-foreground shadow-md hover:shadow-lg shrink-0 cursor-pointer"
+                            className="bg-gradient-to-br from-success/90 to-success hover:from-success hover:to-success/90 text-success-foreground shadow-md hover:shadow-lg shrink-0 cursor-pointer h-8 w-8 sm:h-9 sm:w-9 p-0"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </Button>
                         </div>
                       </div>

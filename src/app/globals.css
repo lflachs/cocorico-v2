@@ -59,6 +59,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Layout */
+  --color-layout-background: var(--layout-background);
+  --color-layout-overlay: var(--layout-overlay);
+
   /* Radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -137,6 +141,10 @@
   --sidebar-accent-foreground: oklch(0.985 0.01 160);
   --sidebar-border: oklch(0.40 0.06 240);
   --sidebar-ring: oklch(0.56 0.08 230);
+
+  /* Layout */
+  --layout-background: oklch(0.96 0.01 200); /* Subtle blue-gray background */
+  --layout-overlay: oklch(0 0 0 / 20%);      /* 20% black overlay for mobile menu */
 }
 
 .dark {
@@ -171,6 +179,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --layout-background: oklch(0.18 0 0);
+  --layout-overlay: oklch(0 0 0 / 60%);
 }
 
 @layer base {

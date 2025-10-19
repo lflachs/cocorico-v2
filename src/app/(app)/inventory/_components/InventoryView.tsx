@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   RefreshCw,
   Download,
@@ -16,6 +17,7 @@ import {
   X,
   Euro,
   Plus,
+  MapPin,
 } from 'lucide-react';
 import { type Product } from '@prisma/client';
 import { useRouter } from 'next/navigation';
@@ -24,6 +26,13 @@ import { useLanguage } from '@/providers/LanguageProvider';
 import { VoiceAssistant } from '@/components/voice/VoiceAssistant';
 import Link from 'next/link';
 import { CreateButton } from '@/components/CreateButton';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ProducerSearch to avoid SSR issues with Leaflet
+const ProducerSearch = dynamic(
+  () => import('@/components/producers/ProducerSearch').then((mod) => ({ default: mod.ProducerSearch })),
+  { ssr: false, loading: () => <div className="p-8 text-center">Loading map...</div> }
+);
 
 /**
  * Comprehensive Inventory View Component
@@ -37,6 +46,7 @@ type InventoryViewProps = {
 export function InventoryView({ initialProducts }: InventoryViewProps) {
   const { t } = useLanguage();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState('inventory');
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(initialProducts);
   const [searchQuery, setSearchQuery] = useState('');
@@ -218,9 +228,21 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
       {/* Voice Assistant */}
       <VoiceAssistant onInventoryUpdate={fetchProducts} />
 
-      <div className="space-y-6">
-        {/* Stock Valuation Summary */}
-        <Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsTrigger value="inventory" className="gap-2">
+            <Package className="w-4 h-4" />
+            Stock
+          </TabsTrigger>
+          <TabsTrigger value="producers" className="gap-2">
+            <MapPin className="w-4 h-4" />
+            Trouver des producteurs
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inventory" className="space-y-6">
+          {/* Stock Valuation Summary */}
+          <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Euro className="h-5 w-5 text-green-600" />
@@ -485,7 +507,12 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
             )}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="producers">
+          <ProducerSearch />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
