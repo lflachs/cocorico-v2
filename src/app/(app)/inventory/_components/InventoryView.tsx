@@ -57,6 +57,8 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
     quantity: number;
     unitPrice: number | null;
   }>({ name: '', quantity: 0, unitPrice: null });
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter products based on search
   useEffect(() => {
@@ -68,6 +70,8 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
       );
       setFilteredProducts(filtered);
     }
+    // Clear selection when search changes
+    setSelectedProducts(new Set());
   }, [searchQuery, products]);
 
   const fetchProducts = async () => {
@@ -219,6 +223,62 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
     toast.success(t('inventory.export.success'));
   };
 
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === filteredProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map((p) => p.id)));
+    }
+  };
+
+  const toggleSelectProduct = (productId: string) => {
+    const newSelection = new Set(selectedProducts);
+    if (newSelection.has(productId)) {
+      newSelection.delete(productId);
+    } else {
+      newSelection.add(productId);
+    }
+    setSelectedProducts(newSelection);
+  };
+
+  const bulkDeleteProducts = async () => {
+    if (selectedProducts.size === 0) return;
+
+    const confirmed = confirm(
+      `${t('inventory.delete.confirm')} ${selectedProducts.size} product(s)?`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      const deletePromises = Array.from(selectedProducts).map((productId) =>
+        fetch(`/api/products/${productId}`, { method: 'DELETE' })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter((r) => r.ok).length;
+      const failureCount = results.length - successCount;
+
+      if (successCount > 0) {
+        await fetchProducts();
+        toast.success(`Successfully deleted ${successCount} product(s)`);
+        router.refresh();
+      }
+
+      if (failureCount > 0) {
+        toast.error(`Failed to delete ${failureCount} product(s)`);
+      }
+
+      setSelectedProducts(new Set());
+    } catch (error) {
+      console.error('Error deleting products:', error);
+      toast.error('Failed to delete products');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const productsWithValue = products.filter((p) => p.unitPrice && p.unitPrice > 0);
   const avgValue =
     productsWithValue.length > 0 ? calculateStockValue() / productsWithValue.length : 0;
@@ -285,6 +345,23 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
                 {t('inventory.title')}
               </span>
               <div className="flex flex-wrap gap-2">
+                {selectedProducts.size > 0 && (
+                  <Button
+                    onClick={bulkDeleteProducts}
+                    disabled={isDeleting}
+                    variant="destructive"
+                    size="sm"
+                    className="cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">
+                      {isDeleting
+                        ? 'Deleting...'
+                        : `Delete ${selectedProducts.size} item${selectedProducts.size > 1 ? 's' : ''}`}
+                    </span>
+                    <span className="sm:hidden">{selectedProducts.size}</span>
+                  </Button>
+                )}
                 <Link href="/inventory/new">
                   <CreateButton>{t('inventory.addProduct')}</CreateButton>
                 </Link>
@@ -321,6 +398,17 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
+                      <th className="px-2 py-3 text-left font-medium w-10">
+                        <input
+                          type="checkbox"
+                          checked={
+                            filteredProducts.length > 0 &&
+                            selectedProducts.size === filteredProducts.length
+                          }
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded border-gray-300"
+                        />
+                      </th>
                       <th className="px-2 py-3 text-left font-medium">
                         {t('inventory.table.product')}
                       </th>
@@ -350,6 +438,15 @@ export function InventoryView({ initialProducts }: InventoryViewProps) {
                   <tbody>
                     {filteredProducts.map((product) => (
                       <tr key={product.id} className="border-b hover:bg-gray-50">
+                        {/* Checkbox */}
+                        <td className="px-2 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.has(product.id)}
+                            onChange={() => toggleSelectProduct(product.id)}
+                            className="h-4 w-4 cursor-pointer rounded border-gray-300"
+                          />
+                        </td>
                         {/* Product Name */}
                         <td className="w-1/3 max-w-0 px-2 py-3 font-medium">
                           {editingProduct === product.id ? (
