@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,7 +70,6 @@ type DishMapping = {
 
 export default function MenuScanReviewPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { t } = useLanguage();
 
   const [menus, setMenus] = useState<ScannedMenu[]>([]);
