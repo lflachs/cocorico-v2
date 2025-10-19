@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { productSchema } from '@/lib/validations/product.schema';
-import { createProduct, updateProduct, deleteProduct, getAllProducts } from '@/lib/services/product.service';
+import { createProduct, updateProduct, deleteProduct, getAllProducts, bulkCreateProducts } from '@/lib/services/product.service';
 import type { Product } from '@prisma/client';
 
 /**
@@ -101,5 +101,49 @@ export async function createProductWithoutRedirectAction(formData: FormData): Pr
       return { success: false, error: error.message };
     }
     return { success: false, error: 'Failed to create product' };
+  }
+}
+
+/**
+ * Bulk import products from Excel/CSV
+ * Used for bulk product imports from the import review page
+ */
+export async function bulkImportProductsAction(
+  products: Array<{
+    name: string;
+    quantity: number;
+    unit: 'KG' | 'L' | 'PC';
+    unitPrice?: number;
+    parLevel?: number;
+    category?: string;
+  }>
+): Promise<ActionResult<{ count: number }>> {
+  try {
+    // Validate all products
+    const validatedProducts = products.map((product) => {
+      const totalValue = product.unitPrice ? product.quantity * product.unitPrice : undefined;
+
+      return productSchema.parse({
+        name: product.name,
+        quantity: product.quantity,
+        unit: product.unit,
+        unitPrice: product.unitPrice,
+        totalValue,
+        category: product.category,
+        trackable: false,
+        parLevel: product.parLevel,
+      });
+    });
+
+    // Bulk create
+    const result = await bulkCreateProducts(validatedProducts);
+
+    revalidatePath('/inventory');
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: 'Failed to import products' };
   }
 }

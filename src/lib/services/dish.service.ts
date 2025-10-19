@@ -93,18 +93,24 @@ export async function getDishById(id: string): Promise<DishWithRecipe | null> {
 export async function createDish(data: CreateDishInput): Promise<Dish> {
   const { recipeIngredients, ...dishData } = data;
 
+  // Filter out recipe ingredients with invalid productIds (empty string or undefined)
+  const validRecipeIngredients = recipeIngredients?.filter(
+    (ingredient) => ingredient.productId && ingredient.productId.trim() !== ''
+  );
+
   const dish = await db.dish.create({
     data: {
       ...dishData,
-      recipeIngredients: recipeIngredients
-        ? {
-            create: recipeIngredients.map((ingredient) => ({
-              productId: ingredient.productId,
-              quantityRequired: ingredient.quantityRequired,
-              unit: ingredient.unit,
-            })),
-          }
-        : undefined,
+      recipeIngredients:
+        validRecipeIngredients && validRecipeIngredients.length > 0
+          ? {
+              create: validRecipeIngredients.map((ingredient) => ({
+                productId: ingredient.productId,
+                quantityRequired: ingredient.quantityRequired,
+                unit: ingredient.unit,
+              })),
+            }
+          : undefined,
     },
     include: {
       recipeIngredients: {
@@ -131,15 +137,22 @@ export async function updateDish(id: string, data: UpdateDishInput): Promise<Dis
       where: { dishId: id },
     });
 
-    // Create new recipe ingredients
-    await db.recipeIngredient.createMany({
-      data: recipeIngredients.map((ingredient) => ({
-        dishId: id,
-        productId: ingredient.productId,
-        quantityRequired: ingredient.quantityRequired,
-        unit: ingredient.unit,
-      })),
-    });
+    // Filter out recipe ingredients with invalid productIds
+    const validRecipeIngredients = recipeIngredients.filter(
+      (ingredient) => ingredient.productId && ingredient.productId.trim() !== ''
+    );
+
+    // Create new recipe ingredients (only if there are valid ones)
+    if (validRecipeIngredients.length > 0) {
+      await db.recipeIngredient.createMany({
+        data: validRecipeIngredients.map((ingredient) => ({
+          dishId: id,
+          productId: ingredient.productId,
+          quantityRequired: ingredient.quantityRequired,
+          unit: ingredient.unit,
+        })),
+      });
+    }
   }
 
   // Update the dish

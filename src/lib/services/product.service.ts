@@ -147,3 +147,25 @@ export async function deleteCompositeProduct(id: string): Promise<void> {
     where: { id },
   });
 }
+
+/**
+ * Bulk create products
+ * Efficiently creates multiple products in a single transaction
+ */
+export async function bulkCreateProducts(products: ProductInput[]): Promise<{ count: number }> {
+  const result = await db.product.createMany({
+    data: products.map((product) => ({
+      name: product.name,
+      quantity: product.quantity,
+      unit: product.unit,
+      unitPrice: product.unitPrice,
+      totalValue: product.totalValue,
+      category: product.category,
+      trackable: product.trackable ?? false,
+      parLevel: product.parLevel,
+    })),
+    skipDuplicates: true, // Skip products with duplicate names
+  });
+
+  return result;
+}
