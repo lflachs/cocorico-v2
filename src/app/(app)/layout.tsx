@@ -6,6 +6,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { MobileMenuToggle } from '@/components/layout/MobileMenuToggle';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { VoiceAssistant } from '@/components/voice/VoiceAssistant';
+import { useRouter } from 'next/navigation';
 
 /**
  * App Layout
@@ -14,6 +16,7 @@ import { MobileHeader } from '@/components/layout/MobileHeader';
 
 function AppContent({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -30,6 +33,9 @@ function AppContent({ children }: { children: ReactNode }) {
           <div className="mx-auto min-h-full max-w-7xl space-y-6">{children}</div>
         </main>
       </div>
+
+      {/* Global Voice Assistant */}
+      <VoiceAssistant onInventoryUpdate={() => router.refresh()} />
     </div>
   );
 }

@@ -28,7 +28,6 @@ import { type Product } from '@prisma/client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import { useLanguage } from '@/providers/LanguageProvider';
-import { VoiceAssistant } from '@/components/voice/VoiceAssistant';
 import Link from 'next/link';
 import { CreateButton } from '@/components/CreateButton';
 import dynamic from 'next/dynamic';
@@ -420,9 +419,6 @@ Product: ${p.name}
 
   return (
     <>
-      {/* Voice Assistant */}
-      <VoiceAssistant onInventoryUpdate={() => router.refresh()} />
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
           <TabsTrigger value="inventory" className="gap-1 sm:gap-2">

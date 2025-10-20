@@ -49,8 +49,42 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
   const [parsedCommand, setParsedCommand] = useState<ParsedCommand | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+
+  // Load wake word setting from localStorage (default: disabled)
+  const [enableWakeWord, setEnableWakeWord] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('voiceAssistantWakeWordEnabled');
+      return stored === 'true';
+    }
+    return false;
+  });
+
   const [isWakeWordListening, setIsWakeWordListening] = useState(false);
-  const [showWakeWordIndicator, setShowWakeWordIndicator] = useState(true);
+
+  // Save wake word setting to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('voiceAssistantWakeWordEnabled', String(enableWakeWord));
+    }
+  }, [enableWakeWord]);
+
+  // Toggle wake word function
+  const toggleWakeWord = useCallback(() => {
+    setEnableWakeWord(prev => !prev);
+    if (enableWakeWord) {
+      // If disabling, stop wake word listening
+      if (wakeWordRecognitionRef.current) {
+        try {
+          wakeWordRecognitionRef.current.abort();
+        } catch (e) {
+          console.log("[WakeWord] Error stopping:", e);
+        }
+        wakeWordRecognitionRef.current = null;
+        setIsWakeWordListening(false);
+        wakeWordInitializedRef.current = false;
+      }
+    }
+  }, [enableWakeWord]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -935,6 +969,12 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
   // Wake word detection using browser's SpeechRecognition API
   useEffect(() => {
+    // Only enable if user has enabled wake word detection
+    if (!enableWakeWord) {
+      console.log("[WakeWord] Wake word detection is disabled");
+      return;
+    }
+
     // Prevent multiple instances
     if (wakeWordInitializedRef.current) {
       console.log("[WakeWord] Already initialized, skipping");
@@ -1034,7 +1074,7 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
         console.log("[WakeWord] Wake word detection stopped");
       }
     };
-  }, [isWakeWordListening]);
+  }, [isWakeWordListening, enableWakeWord]);
 
   // Pause wake word detection when dialog is open, resume when closed
   useEffect(() => {
@@ -1058,7 +1098,8 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
         recognition.start();
       } catch (e) {
         // Already running is fine
-        if (!e.message?.includes('already started')) {
+        const error = e as Error;
+        if (!error.message?.includes('already started')) {
           console.log("[WakeWord] Error starting:", e);
         }
       }
@@ -1089,26 +1130,39 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
   return (
     <>
-      {/* Wake word detection indicator */}
-      {isWakeWordListening && !isOpen && showWakeWordIndicator && (
-        <div className="fixed bottom-6 left-4 sm:left-6 z-40 animate-in fade-in slide-in-from-bottom duration-500">
-          <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-[#1d3557]/70 backdrop-blur-lg border border-white/10 shadow-lg">
-            <div className="w-2 h-2 bg-[#e63946] rounded-full animate-pulse shadow-lg shadow-[#e63946]/50" />
-            <span className="text-xs sm:text-sm font-medium text-white/90">Say "Cocorico" to activate</span>
-            <Button
-              onClick={() => setShowWakeWordIndicator(false)}
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 sm:h-6 sm:w-6 ml-1 sm:ml-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300"
-            >
-              <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Floating Voice Button with gradient animation - Brand Colors */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 group">
+        {/* Wake word toggle - only visible on hover and when dialog is closed */}
+        {!isOpen && (
+          <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1d3557]/90 backdrop-blur-lg border border-white/10 shadow-lg">
+              {isWakeWordListening && (
+                <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse shadow-sm shadow-[#e63946]/50" />
+              )}
+              <span className="text-xs font-medium text-white/90 whitespace-nowrap">
+                Say "Cocorico"
+              </span>
+              <button
+                onClick={toggleWakeWord}
+                className={cn(
+                  "relative inline-flex h-4 w-8 items-center rounded-full transition-colors duration-300",
+                  enableWakeWord ? "bg-[#457b9d]" : "bg-white/20"
+                )}
+                aria-label="Toggle wake word detection"
+              >
+                <span
+                  className={cn(
+                    "inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300",
+                    enableWakeWord ? "translate-x-4" : "translate-x-0.5"
+                  )}
+                />
+              </button>
+            </div>
+            {/* Invisible bridge to prevent gap */}
+            <div className="absolute top-full left-0 right-0 h-2" />
+          </div>
+        )}
+
         {/* Animated gradient ring when recording */}
         {state === "recording" && (
           <div className="absolute inset-0 rounded-full animate-ping">
