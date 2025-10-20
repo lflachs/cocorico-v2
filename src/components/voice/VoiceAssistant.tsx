@@ -58,21 +58,22 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
   const [productPrice, setProductPrice] = useState<number | null>(null);
 
   // Load wake word setting from localStorage (default: disabled)
-  const [enableWakeWord, setEnableWakeWord] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('voiceAssistantWakeWordEnabled');
-      return stored === 'true';
-    }
-    return false;
-  });
+  // Always start with false to match SSR, then update from localStorage on client
+  const [enableWakeWord, setEnableWakeWord] = useState(false);
 
   const [isWakeWordListening, setIsWakeWordListening] = useState(false);
 
+  // Load wake word setting from localStorage on client after mount
+  useEffect(() => {
+    const stored = localStorage.getItem('voiceAssistantWakeWordEnabled');
+    if (stored === 'true') {
+      setEnableWakeWord(true);
+    }
+  }, []);
+
   // Save wake word setting to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('voiceAssistantWakeWordEnabled', String(enableWakeWord));
-    }
+    localStorage.setItem('voiceAssistantWakeWordEnabled', String(enableWakeWord));
   }, [enableWakeWord]);
 
   // Toggle wake word function
