@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 interface SiriWaveformProps {
   isActive: boolean;
   audioLevel?: number;
-  state: "idle" | "recording" | "transcribing" | "parsing" | "confirming" | "executing" | "speaking";
+  state: "idle" | "recording" | "transcribing" | "parsing" | "confirming" | "executing" | "speaking" | "asking_price";
 }
 
 export function SiriWaveform({ isActive, audioLevel = 0, state }: SiriWaveformProps) {

@@ -15,8 +15,10 @@ type ConversationState = "idle" | "recording" | "transcribing" | "parsing" | "co
 type ProductCommand = {
   product: string;
   quantity: number;
+  unitPrice?: number | null;
   matchedProductId: string | null;
   matchedProductName: string | null;
+  matchedProducts: Array<{ id: string; name: string; quantity: number; unit: string; unitPrice?: number | null }> | null;
   currentQuantity: number | null;
   unit: string | null;
 };
@@ -47,7 +49,6 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
   const [state, setState] = useState<ConversationState>("idle");
   const [transcript, setTranscript] = useState("");
   const [parsedCommand, setParsedCommand] = useState<ParsedCommand | null>(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [pendingProductsQueue, setPendingProductsQueue] = useState<Array<{
     product: string;
@@ -55,7 +56,7 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     unit: string;
     action: string;
   }>>([]);
-  const [productPrice, setProductPrice] = useState<number | null>(null);
+  const [spokenText, setSpokenText] = useState<string>("");
 
   // Load wake word setting from localStorage (default: disabled)
   // Always start with false to match SSR, then update from localStorage on client
@@ -113,46 +114,76 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
   const shouldListenForWakeWordRef = useRef<boolean>(true);
   const isDialogOpenRef = useRef<boolean>(false);
   const notificationAudioContextRef = useRef<AudioContext | null>(null);
+  const isClosingRef = useRef<boolean>(false);
+
+  // Helper function to convert unit abbreviations to spoken form
+  const getSpokenUnit = (unit: string, quantity: number) => {
+    const isFrench = language === 'fr';
+    const isPlural = quantity > 1;
+
+    switch (unit) {
+      case 'KG':
+        return isFrench
+          ? (isPlural ? 'kilogrammes' : 'kilogramme')
+          : (isPlural ? 'kilograms' : 'kilogram');
+      case 'L':
+        return isFrench
+          ? (isPlural ? 'litres' : 'litre')
+          : (isPlural ? 'liters' : 'liter');
+      case 'PC':
+        return isFrench
+          ? (isPlural ? 'pièces' : 'pièce')
+          : (isPlural ? 'pieces' : 'piece');
+      default:
+        return unit;
+    }
+  };
+
+  // Helper function to convert price to spoken form
+  const getSpokenPrice = (price: number, isFrench: boolean) => {
+    // If less than 1 euro, speak in cents
+    if (price < 1) {
+      const cents = Math.round(price * 100);
+      if (isFrench) {
+        return cents === 1 ? "1 centime" : `${cents} centimes`;
+      } else {
+        return cents === 1 ? "1 cent" : `${cents} cents`;
+      }
+    }
+
+    // If exactly a whole number of euros
+    const euros = Math.floor(price);
+    const cents = Math.round((price - euros) * 100);
+
+    if (cents === 0) {
+      if (isFrench) {
+        return euros === 1 ? "1 euro" : `${euros} euros`;
+      } else {
+        return euros === 1 ? "1 euro" : `${euros} euros`;
+      }
+    }
+
+    // If has both euros and cents
+    if (isFrench) {
+      const euroText = euros === 1 ? "1 euro" : `${euros} euros`;
+      const centText = cents === 1 ? "1 centime" : `${cents} centimes`;
+      return `${euroText} ${centText}`;
+    } else {
+      const euroText = euros === 1 ? "1 euro" : `${euros} euros`;
+      const centText = cents === 1 ? "1 cent" : `${cents} cents`;
+      return `${euroText} ${centText}`;
+    }
+  };
 
   // Play notification sound when dialog opens
   const playNotificationSound = useCallback(() => {
     try {
-      // Create audio context if it doesn't exist
-      if (!notificationAudioContextRef.current) {
-        notificationAudioContextRef.current = new AudioContext();
-      }
-
-      const audioContext = notificationAudioContextRef.current;
-      const now = audioContext.currentTime;
-
-      // Create oscillator for a pleasant "chime" sound
-      const oscillator1 = audioContext.createOscillator();
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      // Create two tones for a harmonious sound (major third interval)
-      oscillator1.type = 'sine';
-      oscillator1.frequency.setValueAtTime(800, now); // E5
-
-      oscillator2.type = 'sine';
-      oscillator2.frequency.setValueAtTime(1000, now); // B5
-
-      // Connect oscillators to gain node
-      oscillator1.connect(gainNode);
-      oscillator2.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      // Envelope for smooth sound (attack and decay)
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.15, now + 0.05); // Attack
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4); // Decay
-
-      // Start and stop the sound
-      oscillator1.start(now);
-      oscillator2.start(now);
-      oscillator1.stop(now + 0.4);
-      oscillator2.stop(now + 0.4);
-
+      const audio = new Audio('/sounds/cocorico-notification.mp3');
+      audio.volume = 0.5;
+      audio.play().catch((error) => {
+        console.error("[Voice] Error playing notification sound:", error);
+        // Silently fail - notification sound is not critical
+      });
       console.log("[Voice] Notification sound played");
     } catch (error) {
       console.error("[Voice] Error playing notification sound:", error);
@@ -259,10 +290,9 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
     // Reset state
     setAudioLevel(0);
-    setIsPlayingAudio(false);
     setState("idle");
     setPendingProductsQueue([]);
-    setProductPrice(null);
+    setSpokenText("");
   }, []);
 
   // Start recording with voice activity detection
@@ -449,6 +479,153 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     }
   }, []);
 
+  // Generic function to record audio and return the blob
+  const recordAudio = useCallback(async (options: {
+    silenceThreshold?: number;
+    silenceDuration?: number;
+    minRecordingTime?: number;
+    maxRecordingTime?: number;
+    playNotification?: boolean;
+  } = {}): Promise<Blob | null> => {
+    const {
+      silenceThreshold = 20,
+      silenceDuration = 2000,
+      minRecordingTime = 1500,
+      maxRecordingTime = 8000,
+      playNotification = true
+    } = options;
+
+    console.log("[Voice] recordAudio called with options:", options);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("[Voice] Microphone access granted");
+
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+        'audio/wav',
+      ];
+
+      let selectedMimeType = '';
+      for (const mimeType of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+          selectedMimeType = mimeType;
+          break;
+        }
+      }
+
+      const mediaRecorder = selectedMimeType
+        ? new MediaRecorder(stream, { mimeType: selectedMimeType })
+        : new MediaRecorder(stream);
+
+      const chunks: Blob[] = [];
+
+      // Set up audio analysis for voice activity detection
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      let hasDetectedVoice = false;
+      let silenceTimeout: NodeJS.Timeout | null = null;
+      let startTime = Date.now();
+      let animationFrame: number | null = null;
+
+      // Monitor audio levels
+      const checkAudioLevel = () => {
+        if (mediaRecorder.state !== "recording") {
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          return;
+        }
+
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+        if (average > silenceThreshold) {
+          hasDetectedVoice = true;
+          if (silenceTimeout) {
+            clearTimeout(silenceTimeout);
+            silenceTimeout = null;
+          }
+        } else if (hasDetectedVoice && (Date.now() - startTime) > minRecordingTime) {
+          if (!silenceTimeout) {
+            silenceTimeout = setTimeout(() => {
+              if (mediaRecorder.state === "recording") {
+                console.log("[Voice] Silence detected, stopping recording");
+                mediaRecorder.stop();
+              }
+            }, silenceDuration);
+          }
+        }
+
+        animationFrame = requestAnimationFrame(checkAudioLevel);
+      };
+
+      return new Promise<Blob | null>((resolve) => {
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const actualMimeType = mediaRecorder.mimeType || "audio/webm";
+          const audioBlob = new Blob(chunks, { type: actualMimeType });
+
+          console.log("[Voice] Recording stopped, blob size:", audioBlob.size, "bytes");
+
+          // Cleanup
+          if (silenceTimeout) clearTimeout(silenceTimeout);
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          if (audioContext) audioContext.close();
+          stream.getTracks().forEach((track) => track.stop());
+
+          // Check if we have meaningful audio data
+          if (audioBlob.size < 1000) {
+            console.warn("[Voice] Audio blob too small");
+            resolve(null);
+          } else {
+            resolve(audioBlob);
+          }
+        };
+
+        mediaRecorder.start(100);
+        setState("recording");
+        console.log("[Voice] Recording started");
+
+        if (playNotification) {
+          playNotificationSound();
+        }
+
+        // Wait for notification to finish before starting VAD
+        setTimeout(() => {
+          if (mediaRecorder.state === "recording") {
+            startTime = Date.now();
+            checkAudioLevel();
+            console.log("[Voice] VAD monitoring started");
+          }
+        }, 1000);
+
+        // Fallback: Auto-stop after max time
+        setTimeout(() => {
+          if (mediaRecorder.state === "recording") {
+            console.log("[Voice] Max recording time reached");
+            mediaRecorder.stop();
+          }
+        }, maxRecordingTime);
+      });
+    } catch (error) {
+      console.error("[Voice] Recording error:", error);
+      return null;
+    }
+  }, [playNotificationSound]);
+
   // Process audio: transcribe → parse → speak
   // Remove useCallback to avoid stale closure - we need fresh language value
   const processAudio = async (audioBlob: Blob) => {
@@ -570,11 +747,61 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     }
   };
 
+  // Create product directly with a known price (no queue management)
+  const createProductDirectly = async (
+    product: { name: string; quantity: number; unit: string; unitPrice: number },
+    currentLang: string
+  ) => {
+    try {
+      console.log("[Voice] Creating product directly with price:", product);
+      setState("executing");
+
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: product.name,
+          quantity: product.quantity,
+          unit: product.unit || "PC",
+          trackable: true,
+          unitPrice: product.unitPrice,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to create product: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      console.log("[Voice] Product created successfully with mentioned price");
+
+      // Trigger inventory refresh
+      onInventoryUpdate?.();
+
+      // Build success message with spoken units
+      const spokenUnit = getSpokenUnit(product.unit, product.quantity);
+      const spokenPrice = getSpokenPrice(product.unitPrice, currentLang === 'fr');
+      const successMessage = currentLang === 'fr'
+        ? `Produit ${product.name} créé avec ${product.quantity} ${spokenUnit} à ${spokenPrice}.`
+        : `Product ${product.name} created with ${product.quantity} ${spokenUnit} at ${spokenPrice}.`;
+
+      await speakText(successMessage);
+      toast.success(successMessage);
+
+      console.log("[Voice] Product created directly, no queue management needed");
+    } catch (error) {
+      console.error("[Voice] Error creating product directly:", error);
+      toast.error("Failed to create product");
+      throw error; // Re-throw so caller can handle
+    }
+  };
+
   // Create product with price and handle queue
   const createProductWithPrice = async (
     productData: { product: string; quantity: number; unit: string; action: string },
     price: number | null,
-    currentLang: string
+    currentLang: string,
+    productsQueue: Array<{ product: string; quantity: number; unit: string; action: string }>
   ) => {
     try {
       console.log("[Voice] Creating product with price:", productData, price);
@@ -602,56 +829,56 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       // Trigger inventory refresh
       onInventoryUpdate?.();
 
-      // Build success message
+      // Build success message with spoken units
+      const spokenUnit = getSpokenUnit(productData.unit, productData.quantity);
       let successMessage = '';
       if (price !== null) {
+        const spokenPrice = getSpokenPrice(price, currentLang === 'fr');
         successMessage = currentLang === 'fr'
-          ? `Produit ${productData.product} créé avec ${productData.quantity} ${productData.unit} à ${price} euros.`
-          : `Product ${productData.product} created with ${productData.quantity} ${productData.unit} at ${price} euros.`;
+          ? `Produit ${productData.product} créé avec ${productData.quantity} ${spokenUnit} à ${spokenPrice}.`
+          : `Product ${productData.product} created with ${productData.quantity} ${spokenUnit} at ${spokenPrice}.`;
       } else {
         successMessage = currentLang === 'fr'
-          ? `Produit ${productData.product} créé avec ${productData.quantity} ${productData.unit}.`
-          : `Product ${productData.product} created with ${productData.quantity} ${productData.unit}.`;
+          ? `Produit ${productData.product} créé avec ${productData.quantity} ${spokenUnit}.`
+          : `Product ${productData.product} created with ${productData.quantity} ${spokenUnit}.`;
       }
 
       await speakText(successMessage);
       toast.success(successMessage);
 
       // Check if there are more products in the queue
-      setPendingProductsQueue(prevQueue => {
-        const remainingQueue = prevQueue.slice(1); // Remove the first product we just created
+      const remainingQueue = productsQueue.slice(1); // Remove the first product we just created
+      setPendingProductsQueue(remainingQueue);
 
-        // If there are more products, ask for the next one's price
-        if (remainingQueue.length > 0) {
-          const nextProduct = remainingQueue[0];
-          console.log("[Voice] More products in queue, asking for next price:", nextProduct);
+      // If there are more products, ask for the next one's price
+      if (remainingQueue.length > 0) {
+        const nextProduct = remainingQueue[0];
+        console.log("[Voice] More products in queue, asking for next price:", nextProduct);
 
-          // Ask for price of next product
-          setTimeout(async () => {
-            const priceQuestion = currentLang === 'fr'
-              ? `Quel est le prix unitaire de ${nextProduct.product}? Vous pouvez dire le prix en euros, ou dire "je ne sais pas".`
-              : `What is the unit price for ${nextProduct.product}? You can say the price in euros, or say "I don't know".`;
+        // Ask for price of next product
+        setTimeout(async () => {
+          const priceQuestion = currentLang === 'fr'
+            ? `Quel est le prix unitaire de ${nextProduct.product}? Vous pouvez dire le prix en euros, ou dire "je ne sais pas".`
+            : `What is the unit price for ${nextProduct.product}? You can say the price in euros, or say "I don't know".`;
 
-            await speakText(priceQuestion);
-            setState("asking_price");
+          await speakText(priceQuestion);
+          setState("asking_price");
 
-            // Listen for price response
-            await listenForPriceResponse();
-          }, 500); // Small delay for better UX
-        } else {
-          // No more products - reset and close
-          console.log("[Voice] All products created, resetting state");
-          setState("idle");
-          setProductPrice(null);
-          setTimeout(() => {
-            setIsOpen(false);
-            setTranscript("");
-            setParsedCommand(null);
-          }, 2000);
-        }
-
-        return remainingQueue;
-      });
+          // Listen for price response
+          await listenForPriceResponse(remainingQueue);
+        }, 500); // Small delay for better UX
+      } else {
+        // No more products - reset and close
+        console.log("[Voice] All products created, resetting state");
+        isClosingRef.current = true; // Prevent auto-start recording
+        setState("idle");
+        setTimeout(() => {
+          setIsOpen(false);
+          setTranscript("");
+          setParsedCommand(null);
+          isClosingRef.current = false; // Reset for next time
+        }, 2000);
+      }
     } catch (error) {
       console.error("[Voice] Error creating product:", error);
       toast.error("Failed to create product");
@@ -660,8 +887,8 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
   };
 
   // Listen for price response via voice
-  const listenForPriceResponse = async () => {
-    console.log("[Voice] listenForPriceResponse called");
+  const listenForPriceResponse = async (productsQueue: Array<{ product: string; quantity: number; unit: string; action: string }>) => {
+    console.log("[Voice] listenForPriceResponse called with queue:", productsQueue);
 
     // Check if dialog is still open
     if (!isDialogOpenRef.current) {
@@ -670,219 +897,88 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     }
 
     try {
-      // Start recording for price
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      confirmationStreamRef.current = stream;
+      // Record audio using the generic function
+      const audioBlob = await recordAudio({
+        silenceThreshold: 20,
+        silenceDuration: 2500,
+        minRecordingTime: 2000,
+        maxRecordingTime: 8000,
+        playNotification: true
+      });
 
-      // Try to use the best supported audio format
-      const mimeTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-        'audio/ogg;codecs=opus',
-        'audio/wav',
-      ];
-
-      let selectedMimeType = '';
-      for (const mimeType of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
-          break;
+      if (!audioBlob) {
+        console.log("[Voice] No audio recorded for price, treating as 'no price provided'");
+        // Create product without price
+        if (productsQueue.length > 0) {
+          const getCookie = (name: string) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop()?.split(';').shift();
+            return null;
+          };
+          const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
+          await createProductWithPrice(productsQueue[0], null, currentLang, productsQueue);
         }
+        return;
       }
 
-      const mediaRecorder = selectedMimeType
-        ? new MediaRecorder(stream, { mimeType: selectedMimeType })
-        : new MediaRecorder(stream);
+      // Check if dialog is still open before proceeding
+      if (!isDialogOpenRef.current) {
+        console.log("[Voice] Dialog closed after price recording, aborting");
+        return;
+      }
 
-      confirmationRecorderRef.current = mediaRecorder;
-      const chunks: Blob[] = [];
+      setState("transcribing");
 
-      // Set up audio analysis for voice activity detection
-      const audioContext = new AudioContext();
-      confirmationContextRef.current = audioContext;
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const SILENCE_THRESHOLD = 20; // Lower threshold - more sensitive to voice
-      const SILENCE_DURATION = 2500; // 2.5 seconds of silence required
-      const MIN_RECORDING_TIME = 1000; // Minimum 1 second before allowing auto-stop
-
-      let hasDetectedVoice = false;
-      let silenceTimeout: NodeJS.Timeout | null = null;
-      const startTime = Date.now();
-
-      // Monitor audio levels
-      const checkAudioLevel = () => {
-        if (mediaRecorder.state !== "recording") {
-          confirmationAnimationFrameRef.current = null;
-          return;
-        }
-
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
-        // Log audio level occasionally for debugging
-        if (Math.random() < 0.1) {
-          console.log("[Voice] Price audio level:", Math.round(average));
-        }
-
-        if (average > SILENCE_THRESHOLD) {
-          // Voice detected
-          hasDetectedVoice = true;
-          if (silenceTimeout) {
-            clearTimeout(silenceTimeout);
-            silenceTimeout = null;
-          }
-        } else if (hasDetectedVoice && (Date.now() - startTime) > MIN_RECORDING_TIME) {
-          // Silence detected after voice (and after minimum time)
-          if (!silenceTimeout) {
-            silenceTimeout = setTimeout(() => {
-              console.log("[Voice] Silence detected in price response, stopping");
-              if (mediaRecorder.state === "recording") {
-                mediaRecorder.stop();
-                setState("transcribing");
-              }
-            }, SILENCE_DURATION);
-          }
-        }
-
-        confirmationAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
+      // Get current language
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
       };
+      const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
+      // Transcribe the response
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "price.webm");
+      formData.append("language", currentLang);
 
-      mediaRecorder.onstop = async () => {
-        // Use the actual MIME type from the MediaRecorder
-        const actualMimeType = mediaRecorder.mimeType || "audio/webm";
-        const audioBlob = new Blob(chunks, { type: actualMimeType });
+      const transcribeRes = await fetch("/api/voice/transcribe", {
+        method: "POST",
+        body: formData,
+      });
 
-        console.log("[Voice] Price recording stopped, blob size:", audioBlob.size, "bytes", "type:", actualMimeType);
+      // Check again after async operation
+      if (!isDialogOpenRef.current) {
+        console.log("[Voice] Dialog closed during price transcription, aborting");
+        return;
+      }
 
-        // Clean up
-        if (silenceTimeout) clearTimeout(silenceTimeout);
-        if (confirmationContextRef.current) {
-          confirmationContextRef.current.close();
-          confirmationContextRef.current = null;
-        }
+      if (transcribeRes.ok) {
+        const { text } = await transcribeRes.json();
+        console.log("[Voice] Price response:", text);
 
-        // Check if we have meaningful audio data
-        if (audioBlob.size < 1000) {
-          console.warn("[Voice] Price audio blob too small, treating as 'no price provided'");
-
-          // Clean up streams
-          if (confirmationStreamRef.current) {
-            confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-            confirmationStreamRef.current = null;
-          }
-
-          // Create product without price
-          if (pendingProductsQueue.length > 0) {
-            const getCookie = (name: string) => {
-              const value = `; ${document.cookie}`;
-              const parts = value.split(`; ${name}=`);
-              if (parts.length === 2) return parts.pop()?.split(';').shift();
-              return null;
-            };
-            const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
-            await createProductWithPrice(pendingProductsQueue[0], null, currentLang);
-          }
-          return;
-        }
-
-        // Check if dialog is still open before proceeding
-        if (!isDialogOpenRef.current) {
-          console.log("[Voice] Dialog closed during price recording, aborting");
-          if (confirmationStreamRef.current) {
-            confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-            confirmationStreamRef.current = null;
-          }
-          return;
-        }
-
-        // Get current language
-        const getCookie = (name: string) => {
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) return parts.pop()?.split(';').shift();
-          return null;
-        };
-        const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
-
-        // Transcribe the response
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "price.webm");
-        formData.append("language", currentLang);
-
-        const transcribeRes = await fetch("/api/voice/transcribe", {
+        // Parse the price
+        const parseRes = await fetch("/api/voice/parse-price", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, language: currentLang }),
         });
 
-        // Check again after async operation
-        if (!isDialogOpenRef.current) {
-          console.log("[Voice] Dialog closed during price transcription, aborting");
-          if (confirmationStreamRef.current) {
-            confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-            confirmationStreamRef.current = null;
-          }
-          return;
-        }
+        if (parseRes.ok) {
+          const { price: priceData } = await parseRes.json();
+          console.log("[Voice] Parsed price:", priceData);
 
-        if (transcribeRes.ok) {
-          const { text } = await transcribeRes.json();
-          console.log("[Voice] Price response:", text);
+          // Store the price (or null if not provided)
+          const finalPrice = priceData.understood && priceData.price !== null ? priceData.price : null;
 
-          // Parse the price
-          const parseRes = await fetch("/api/voice/parse-price", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, language: currentLang }),
-          });
-
-          if (parseRes.ok) {
-            const { price: priceData } = await parseRes.json();
-            console.log("[Voice] Parsed price:", priceData);
-
-            // Store the price (or null if not provided)
-            const finalPrice = priceData.understood && priceData.price !== null ? priceData.price : null;
-            setProductPrice(finalPrice);
-
-            // Now create the product with the price
-            if (pendingProductsQueue.length > 0) {
-              await createProductWithPrice(pendingProductsQueue[0], finalPrice, currentLang);
-            }
+          // Now create the product with the price
+          if (productsQueue.length > 0) {
+            await createProductWithPrice(productsQueue[0], finalPrice, currentLang, productsQueue);
           }
         }
-
-        if (confirmationStreamRef.current) {
-          confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-          confirmationStreamRef.current = null;
-        }
-      };
-
-      mediaRecorder.start();
-      setState("recording");
-
-      // Start monitoring audio levels
-      checkAudioLevel();
-
-      // Fallback: Auto-stop after 8 seconds max
-      confirmationTimeoutRef.current = setTimeout(() => {
-        if (mediaRecorder.state === "recording") {
-          console.log("[Voice] Max time reached for price, stopping");
-          mediaRecorder.stop();
-          setState("transcribing");
-        }
-      }, 8000);
-
+      }
     } catch (error) {
       console.error("Price listening error:", error);
       toast.error("Failed to listen for price");
@@ -901,113 +997,17 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     }
 
     try {
-      // Start recording for confirmation
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      confirmationStreamRef.current = stream;
+      // Record audio using the generic function
+      const audioBlob = await recordAudio({
+        silenceThreshold: 20,
+        silenceDuration: 1500, // 1.5 seconds for yes/no
+        minRecordingTime: 1500,
+        maxRecordingTime: 5000,
+        playNotification: true
+      });
 
-      // Try to use the best supported audio format
-      const mimeTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-        'audio/ogg;codecs=opus',
-        'audio/wav',
-      ];
-
-      let selectedMimeType = '';
-      for (const mimeType of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
-          break;
-        }
-      }
-
-      const mediaRecorder = selectedMimeType
-        ? new MediaRecorder(stream, { mimeType: selectedMimeType })
-        : new MediaRecorder(stream);
-
-      confirmationRecorderRef.current = mediaRecorder;
-      const chunks: Blob[] = [];
-
-      // Set up audio analysis for voice activity detection
-      const audioContext = new AudioContext();
-      confirmationContextRef.current = audioContext;
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const SILENCE_THRESHOLD = 20;
-      const SILENCE_DURATION = 1000; // Shorter for yes/no (1 second)
-
-      let hasDetectedVoice = false;
-      let silenceTimeout: NodeJS.Timeout | null = null;
-
-      // Monitor audio levels
-      const checkAudioLevel = () => {
-        if (mediaRecorder.state !== "recording") {
-          confirmationAnimationFrameRef.current = null;
-          return;
-        }
-
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
-        if (average > SILENCE_THRESHOLD) {
-          // Voice detected
-          hasDetectedVoice = true;
-          if (silenceTimeout) {
-            clearTimeout(silenceTimeout);
-            silenceTimeout = null;
-          }
-        } else if (hasDetectedVoice) {
-          // Silence detected after voice
-          if (!silenceTimeout) {
-            silenceTimeout = setTimeout(() => {
-              console.log("[Voice] Silence detected in confirmation, stopping");
-              if (mediaRecorder.state === "recording") {
-                mediaRecorder.stop();
-                setState("transcribing");
-              }
-            }, SILENCE_DURATION);
-          }
-        }
-
-        confirmationAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
-      };
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        // Use the actual MIME type from the MediaRecorder
-        const actualMimeType = mediaRecorder.mimeType || "audio/webm";
-        const audioBlob = new Blob(chunks, { type: actualMimeType });
-
-        console.log("[Voice] Confirmation recording stopped, type:", actualMimeType);
-
-        // Clean up
-        if (silenceTimeout) clearTimeout(silenceTimeout);
-        if (confirmationContextRef.current) {
-          confirmationContextRef.current.close();
-          confirmationContextRef.current = null;
-        }
-
-        // Check if dialog is still open before proceeding
-        if (!isDialogOpenRef.current) {
-          console.log("[Voice] Dialog closed during confirmation recording, aborting");
-          if (confirmationStreamRef.current) {
-            confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-            confirmationStreamRef.current = null;
-          }
-          return;
-        }
-
-        // Get current language
+      if (!audioBlob) {
+        console.log("[Voice] No audio recorded for confirmation, asking again");
         const getCookie = (name: string) => {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
@@ -1015,90 +1015,166 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
           return null;
         };
         const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
+        const retryMessage = currentLang === 'fr'
+          ? "Désolé, je n'ai pas entendu. Dites oui ou non."
+          : "Sorry, I didn't hear you. Say yes or no.";
+        await speakText(retryMessage);
+        if (isDialogOpenRef.current) {
+          await listenForConfirmationWithCommand(currentCommand);
+        }
+        return;
+      }
 
-        // Transcribe the response
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "confirmation.webm");
-        formData.append("language", currentLang);
+      // Check if dialog is still open before proceeding
+      if (!isDialogOpenRef.current) {
+        console.log("[Voice] Dialog closed after confirmation recording, aborting");
+        return;
+      }
 
-        const transcribeRes = await fetch("/api/voice/transcribe", {
-          method: "POST",
-          body: formData,
-        });
+      setState("transcribing");
 
-        // Check again after async operation
+      // Get current language
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+      const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
+
+      // Transcribe the response
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "confirmation.webm");
+      formData.append("language", currentLang);
+
+      const transcribeRes = await fetch("/api/voice/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      // Check again after async operation
+      if (!isDialogOpenRef.current) {
+        console.log("[Voice] Dialog closed during confirmation transcription, aborting");
+        return;
+      }
+
+      if (transcribeRes.ok) {
+        const { text } = await transcribeRes.json();
+        console.log("[Voice] Confirmation response:", text);
+
+        // Check one more time before processing response
         if (!isDialogOpenRef.current) {
-          console.log("[Voice] Dialog closed during confirmation transcription, aborting");
-          if (confirmationStreamRef.current) {
-            confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-            confirmationStreamRef.current = null;
-          }
+          console.log("[Voice] Dialog closed after confirmation transcription, aborting");
           return;
         }
 
-        if (transcribeRes.ok) {
-          const { text } = await transcribeRes.json();
-          console.log("[Voice] Confirmation response:", text);
+          // Check if we're handling multiple matches
+          const hasMultipleMatches = currentCommand.products.some(p => p.matchedProducts && p.matchedProducts.length > 1);
 
-          // Check one more time before processing response
-          if (!isDialogOpenRef.current) {
-            console.log("[Voice] Dialog closed after confirmation transcription, aborting");
-            if (confirmationStreamRef.current) {
-              confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-              confirmationStreamRef.current = null;
-            }
-            return;
-          }
-
-          // Check for yes/no in both languages
           const lowerText = text.toLowerCase().trim();
-          const isYes = lowerText.includes('oui') || lowerText.includes('yes') ||
-                       lowerText.includes('ouais') || lowerText.includes('yeah') ||
-                       lowerText.includes('ok') || lowerText.includes('d\'accord');
-          const isNo = lowerText.includes('non') || lowerText.includes('no') ||
-                      lowerText.includes('pas') || lowerText.includes('annule');
 
-          if (isYes) {
-            console.log("[Voice] User confirmed, executing action with command:", currentCommand);
-            // Execute directly with the captured command
-            await executeCommand(currentCommand);
-          } else if (isNo) {
-            console.log("[Voice] User cancelled");
-            await handleCancel();
+          if (hasMultipleMatches) {
+            // Special handling for multiple matches - user needs to pick one or say "new"
+            console.log("[Voice] Multiple matches detected, parsing user choice:", lowerText);
+
+            const isNew = lowerText.includes('nouveau') || lowerText.includes('new') ||
+                         lowerText.includes('autre') || lowerText.includes('different');
+
+            if (isNew) {
+              console.log("[Voice] User wants to create a new product");
+              // Create new product with original name
+              const modifiedCommand = {
+                ...currentCommand,
+                products: currentCommand.products.map(prod => ({
+                  ...prod,
+                  matchedProductId: null,
+                  matchedProductName: null,
+                  matchedProducts: null,
+                  currentQuantity: null
+                }))
+              };
+              await executeCommand(modifiedCommand);
+            } else {
+              // Try to match the user's response to one of the products
+              const modifiedCommand = {
+                ...currentCommand,
+                products: currentCommand.products.map(prod => {
+                  if (prod.matchedProducts && prod.matchedProducts.length > 1) {
+                    // Find which product name the user said
+                    const chosenProduct = prod.matchedProducts.find(p =>
+                      lowerText.includes(p.name.toLowerCase())
+                    );
+
+                    if (chosenProduct) {
+                      console.log("[Voice] User chose product:", chosenProduct.name);
+                      return {
+                        ...prod,
+                        matchedProductId: chosenProduct.id,
+                        matchedProductName: chosenProduct.name,
+                        currentQuantity: chosenProduct.quantity
+                      };
+                    }
+                  }
+                  return prod;
+                })
+              };
+
+              // Check if we found a match
+              const foundMatch = modifiedCommand.products.some(p => p.matchedProductId);
+              if (foundMatch) {
+                await executeCommand(modifiedCommand);
+              } else {
+                // Didn't understand which product they meant
+                const retryMessage = currentLang === 'fr'
+                  ? "Désolé, je n'ai pas compris. Dites le nom du produit, ou dites 'nouveau'."
+                  : "Sorry, I didn't understand. Say the product name, or say 'new'.";
+                await speakText(retryMessage);
+                if (isDialogOpenRef.current) {
+                  await listenForConfirmationWithCommand(currentCommand);
+                }
+              }
+            }
           } else {
-            // Unclear response, ask again
-            const retryMessage = currentLang === 'fr'
-              ? "Désolé, je n'ai pas compris. Dites oui ou non."
-              : "Sorry, I didn't understand. Say yes or no.";
-            await speakText(retryMessage);
-            // Try again with the same command (only if dialog is still open)
-            if (isDialogOpenRef.current) {
-              await listenForConfirmationWithCommand(currentCommand);
+            // Regular yes/no confirmation
+            const isYes = lowerText.includes('oui') || lowerText.includes('yes') ||
+                         lowerText.includes('ouais') || lowerText.includes('yeah') ||
+                         lowerText.includes('ok') || lowerText.includes('d\'accord');
+            const isNo = lowerText.includes('non') || lowerText.includes('no') ||
+                        lowerText.includes('pas') || lowerText.includes('annule');
+
+            if (isYes) {
+              console.log("[Voice] User confirmed, executing action with command:", currentCommand);
+              // Execute directly with the captured command (will use matchedProductId if exists)
+              await executeCommand(currentCommand);
+            } else if (isNo) {
+              console.log("[Voice] User declined suggestion");
+              // User said no - they want to create a NEW product with the original name they said
+              // Remove the matchedProductId so it creates a new product instead
+              const modifiedCommand = {
+                ...currentCommand,
+                products: currentCommand.products.map(prod => ({
+                  ...prod,
+                  matchedProductId: null,
+                  matchedProductName: null,
+                  matchedProducts: null,
+                  currentQuantity: null
+                }))
+              };
+              console.log("[Voice] Creating new product(s) with original names:", modifiedCommand);
+              await executeCommand(modifiedCommand);
+            } else {
+              // Unclear response, ask again
+              const retryMessage = currentLang === 'fr'
+                ? "Désolé, je n'ai pas compris. Dites oui ou non."
+                : "Sorry, I didn't understand. Say yes or no.";
+              await speakText(retryMessage);
+              // Try again with the same command (only if dialog is still open)
+              if (isDialogOpenRef.current) {
+                await listenForConfirmationWithCommand(currentCommand);
+              }
             }
           }
         }
-
-        if (confirmationStreamRef.current) {
-          confirmationStreamRef.current.getTracks().forEach((track) => track.stop());
-          confirmationStreamRef.current = null;
-        }
-      };
-
-      mediaRecorder.start();
-      setState("recording");
-
-      // Start monitoring audio levels
-      checkAudioLevel();
-
-      // Fallback: Auto-stop after 5 seconds max
-      confirmationTimeoutRef.current = setTimeout(() => {
-        if (mediaRecorder.state === "recording") {
-          console.log("[Voice] Max time reached, stopping");
-          mediaRecorder.stop();
-          setState("transcribing");
-        }
-      }, 5000);
-
     } catch (error) {
       console.error("Confirmation listening error:", error);
       toast.error("Failed to listen for confirmation");
@@ -1110,7 +1186,7 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
   const speakText = async (text: string) => {
     try {
       setState("speaking");
-      setIsPlayingAudio(true);
+      setSpokenText(text); // Show what's being said
 
       const response = await fetch("/api/voice/speak", {
         method: "POST",
@@ -1132,15 +1208,13 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       // iOS requires explicit load before play
       audio.load();
 
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         audio.onended = () => {
-          setIsPlayingAudio(false);
           resolve();
         };
         audio.onerror = (e) => {
           console.error("Audio playback error:", e);
           // On iOS, if autoplay fails, still resolve to continue
-          setIsPlayingAudio(false);
           resolve();
         };
 
@@ -1151,7 +1225,6 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
             console.error("Play failed:", error);
             // On iOS, autoplay might fail - user needs to interact first
             // We'll still resolve to continue the flow
-            setIsPlayingAudio(false);
             resolve();
           });
         }
@@ -1160,7 +1233,6 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       URL.revokeObjectURL(audioUrl);
     } catch (error) {
       console.error("TTS error:", error);
-      setIsPlayingAudio(false);
     }
   };
 
@@ -1187,27 +1259,53 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
         if (command.action === "add") {
           if (productCmd.matchedProductId) {
             console.log("[Voice] Updating existing product:", productCmd.matchedProductId);
-            // Update existing product
-            const newQuantity = (productCmd.currentQuantity || 0) + productCmd.quantity;
-            const response = await fetch(`/api/products/${productCmd.matchedProductId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ quantity: newQuantity }),
-            });
 
-            if (!response.ok) {
-              throw new Error(`Failed to update product: ${response.status}`);
+            // Check for price mismatch if user mentioned a unit price
+            const existingProduct = productCmd.matchedProducts?.find(p => p.id === productCmd.matchedProductId);
+            const existingPrice = existingProduct?.unitPrice;
+            const mentionedPrice = productCmd.unitPrice;
+
+            if (mentionedPrice != null && existingPrice != null && existingPrice !== mentionedPrice) {
+              console.log("[Voice] Price mismatch detected! Existing:", existingPrice, "Mentioned:", mentionedPrice);
+              // Store this for price update confirmation flow
+              results.push({
+                name: productCmd.matchedProductName,
+                quantity: (productCmd.currentQuantity || 0) + productCmd.quantity,
+                unit: productCmd.unit,
+                existingPrice: existingPrice,
+                mentionedPrice: mentionedPrice,
+                productId: productCmd.matchedProductId,
+                hasPriceMismatch: true
+              });
+            } else {
+              // No price mismatch - just update quantity
+              const newQuantity = (productCmd.currentQuantity || 0) + productCmd.quantity;
+              const response = await fetch(`/api/products/${productCmd.matchedProductId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ quantity: newQuantity }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`Failed to update product: ${response.status}`);
+              }
+
+              console.log("[Voice] Product updated successfully");
+              results.push({ name: productCmd.matchedProductName, quantity: newQuantity, unit: productCmd.unit });
+
+              // Trigger inventory refresh
+              onInventoryUpdate?.();
             }
-
-            console.log("[Voice] Product updated successfully");
-            results.push({ name: productCmd.matchedProductName, quantity: newQuantity, unit: productCmd.unit });
-
-            // Trigger inventory refresh
-            onInventoryUpdate?.();
           } else {
             console.log("[Voice] New product detected:", productCmd.product);
-            // Store pending product creation - we'll ask for price first
-            results.push({ name: productCmd.product, quantity: productCmd.quantity, unit: productCmd.unit, isNew: true });
+            // Store pending product creation - we'll ask for price first (unless price was mentioned)
+            results.push({
+              name: productCmd.product,
+              quantity: productCmd.quantity,
+              unit: productCmd.unit,
+              unitPrice: productCmd.unitPrice, // Pass mentioned price if available
+              isNew: true
+            });
           }
         } else if (command.action === "remove") {
           if (productCmd.matchedProductId) {
@@ -1232,39 +1330,115 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
         }
       }
 
+      // Check if we have price mismatches to handle
+      const priceMismatches = results.filter(r => r.hasPriceMismatch);
+      if (priceMismatches.length > 0) {
+        console.log("[Voice] Price mismatches detected:", priceMismatches);
+        const mismatch = priceMismatches[0]; // Handle one at a time
+
+        // Ask user if they want to update the price
+        const existingPriceSpoken = getSpokenPrice(mismatch.existingPrice, currentLang === 'fr');
+        const mentionedPriceSpoken = getSpokenPrice(mismatch.mentionedPrice, currentLang === 'fr');
+        const priceUpdateQuestion = currentLang === 'fr'
+          ? `Le prix actuel de ${mismatch.name} est ${existingPriceSpoken}, mais vous avez mentionné ${mentionedPriceSpoken}. Voulez-vous mettre à jour le prix à ${mentionedPriceSpoken}?`
+          : `The current price for ${mismatch.name} is ${existingPriceSpoken}, but you mentioned ${mentionedPriceSpoken}. Would you like to update the price to ${mentionedPriceSpoken}?`;
+
+        await speakText(priceUpdateQuestion);
+        setState("confirming");
+
+        // TODO: Listen for yes/no and update price if confirmed
+        // For now, we'll just update the quantity without changing the price
+        const response = await fetch(`/api/products/${mismatch.productId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quantity: mismatch.quantity }),
+        });
+
+        if (response.ok) {
+          onInventoryUpdate?.();
+          const spokenUnit = getSpokenUnit(mismatch.unit || "PC", mismatch.quantity);
+          const successMessage = currentLang === 'fr'
+            ? `Quantité mise à jour. Vous avez maintenant ${mismatch.quantity} ${spokenUnit} de ${mismatch.name}.`
+            : `Quantity updated. You now have ${mismatch.quantity} ${spokenUnit} of ${mismatch.name}.`;
+          await speakText(successMessage);
+          toast.success(successMessage);
+        }
+
+        // Close
+        isClosingRef.current = true;
+        setState("idle");
+        setTimeout(() => {
+          setIsOpen(false);
+          setTranscript("");
+          setParsedCommand(null);
+          isClosingRef.current = false;
+        }, 2000);
+        return;
+      }
+
       // Check if we have new products to create
       const newProducts = results.filter(r => r.isNew);
       if (newProducts.length > 0) {
-        console.log("[Voice] New products detected, asking for prices before creation:", newProducts);
+        console.log("[Voice] New products detected:", newProducts);
 
-        // Store all pending products in the queue
-        setPendingProductsQueue(newProducts.map(p => ({
-          product: p.name,
-          quantity: p.quantity,
-          unit: p.unit || "PC",
-          action: command.action
-        })));
+        // Separate products with and without mentioned prices
+        const productsWithPrice = newProducts.filter(p => p.unitPrice != null);
+        const productsWithoutPrice = newProducts.filter(p => p.unitPrice == null);
 
-        // Ask for price of the first product
-        const firstProduct = newProducts[0];
-        const priceQuestion = currentLang === 'fr'
-          ? `Quel est le prix unitaire de ${firstProduct.name}? Vous pouvez dire le prix en euros, ou dire "je ne sais pas".`
-          : `What is the unit price for ${firstProduct.name}? You can say the price in euros, or say "I don't know".`;
+        // Create products with mentioned prices immediately
+        for (const product of productsWithPrice) {
+          console.log("[Voice] Creating product with mentioned price:", product.name, product.unitPrice);
+          await createProductDirectly(product, currentLang);
+        }
 
-        await speakText(priceQuestion);
-        setState("asking_price");
+        // For products without price, ask for prices
+        if (productsWithoutPrice.length > 0) {
+          console.log("[Voice] Products without price, asking for prices:", productsWithoutPrice);
 
-        // Listen for price response
-        await listenForPriceResponse();
+          // Create the queue array
+          const productsQueue = productsWithoutPrice.map(p => ({
+            product: p.name || "Unknown",
+            quantity: p.quantity,
+            unit: p.unit || "PC",
+            action: command.action
+          }));
+
+          // Store all pending products in the queue
+          setPendingProductsQueue(productsQueue);
+
+          // Ask for price of the first product
+          const firstProduct = productsWithoutPrice[0];
+          const priceQuestion = currentLang === 'fr'
+            ? `Quel est le prix unitaire de ${firstProduct.name}? Vous pouvez dire le prix en euros, ou dire "je ne sais pas".`
+            : `What is the unit price for ${firstProduct.name}? You can say the price in euros, or say "I don't know".`;
+
+          await speakText(priceQuestion);
+          setState("asking_price");
+
+          // Listen for price response - pass the queue directly
+          await listenForPriceResponse(productsQueue);
+        } else {
+          // All products had prices mentioned, we're done
+          console.log("[Voice] All products created with mentioned prices");
+          isClosingRef.current = true;
+          setState("idle");
+          setTimeout(() => {
+            setIsOpen(false);
+            setTranscript("");
+            setParsedCommand(null);
+            isClosingRef.current = false;
+          }, 2000);
+        }
       } else {
         // No new product - just updated existing products
         // Generate success message
         let successMessage = '';
         if (results.length === 1) {
           const result = results[0];
+          const spokenUnit = getSpokenUnit(result.unit || "PC", result.quantity);
           successMessage = currentLang === 'fr'
-            ? `Terminé! Vous avez maintenant ${result.quantity} ${result.unit || ""} de ${result.name}.`
-            : `Done! You now have ${result.quantity} ${result.unit || ""} of ${result.name}.`;
+            ? `Terminé! Vous avez maintenant ${result.quantity} ${spokenUnit} de ${result.name}.`
+            : `Done! You now have ${result.quantity} ${spokenUnit} of ${result.name}.`;
         } else {
           // Multiple products
           successMessage = currentLang === 'fr'
@@ -1278,11 +1452,13 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
         // Reset normally
         console.log("[Voice] Action completed, resetting state");
+        isClosingRef.current = true; // Prevent auto-start recording
         setState("idle");
         setTimeout(() => {
           setIsOpen(false);
           setTranscript("");
           setParsedCommand(null);
+          isClosingRef.current = false; // Reset for next time
         }, 2000);
       }
     } catch (error) {
@@ -1331,7 +1507,7 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       setTranscript("");
       setParsedCommand(null);
       setPendingProductsQueue([]);
-      setProductPrice(null);
+      setSpokenText("");
     }
     setIsOpen(open);
   };
@@ -1350,11 +1526,14 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
   // Auto-start recording when dialog opens
   useEffect(() => {
-    if (isOpen && state === "idle") {
+    if (isOpen && state === "idle" && !isClosingRef.current) {
       // Small delay before starting recording
       const timer = setTimeout(() => {
-        console.log("[Voice] Auto-starting recording after dialog open");
-        startRecording();
+        // Double check we're not closing
+        if (!isClosingRef.current) {
+          console.log("[Voice] Auto-starting recording after dialog open");
+          startRecording();
+        }
       }, 800); // 800ms delay for smooth UX
 
       return () => clearTimeout(timer);
@@ -1642,6 +1821,14 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
                 </div>
               </div>
 
+              {/* Assistant is speaking */}
+              {spokenText && (state === "speaking" || state === "asking_price") && (
+                <div className="border border-[#457b9d]/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-[#457b9d]/10 backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
+                  <p className="text-xs sm:text-sm text-[#a8dadc] mb-1 sm:mb-2 font-medium">Assistant:</p>
+                  <p className="text-base sm:text-lg font-medium text-[#f1faee] break-words">{spokenText}</p>
+                </div>
+              )}
+
               {/* Transcript */}
               {transcript && (
                 <div className="border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white/5 backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
@@ -1664,15 +1851,43 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
                     >
                       {parsedCommand.action}
                     </Badge>
-                    {parsedCommand.products.map((prod, idx) => (
-                      <Badge
-                        key={idx}
-                        className="bg-white/10 text-[#f1faee] border border-white/20 transition-all duration-300 hover:scale-105 text-sm sm:text-base px-3 sm:px-4 py-1 sm:py-1.5 backdrop-blur-sm"
-                      >
-                        {prod.matchedProductName || prod.product} ({prod.quantity} {prod.unit})
-                      </Badge>
-                    ))}
+                    {parsedCommand.products.map((prod, idx) => {
+                      const spokenUnit = getSpokenUnit(prod.unit || "PC", prod.quantity);
+                      return (
+                        <Badge
+                          key={idx}
+                          className="bg-white/10 text-[#f1faee] border border-white/20 transition-all duration-300 hover:scale-105 text-sm sm:text-base px-3 sm:px-4 py-1 sm:py-1.5 backdrop-blur-sm"
+                        >
+                          {prod.matchedProductName || prod.product} ({prod.quantity} {spokenUnit})
+                        </Badge>
+                      );
+                    })}
                   </div>
+
+                  {/* Show multiple matches if they exist */}
+                  {parsedCommand.products.some(p => p.matchedProducts && p.matchedProducts.length > 1) && (
+                    <div className="space-y-2">
+                      <p className="text-xs sm:text-sm text-[#a8dadc] font-medium">Available options:</p>
+                      {parsedCommand.products.map((prod, idx) => (
+                        prod.matchedProducts && prod.matchedProducts.length > 1 && (
+                          <div key={idx} className="flex flex-wrap gap-2">
+                            {prod.matchedProducts.map((match, matchIdx) => (
+                              <Badge
+                                key={matchIdx}
+                                className="bg-[#457b9d]/20 text-[#f1faee] border border-[#457b9d]/40 text-xs sm:text-sm px-2 sm:px-3 py-1 backdrop-blur-sm"
+                              >
+                                {match.name} ({match.quantity} {match.unit})
+                              </Badge>
+                            ))}
+                            <Badge className="bg-[#a8dadc]/20 text-[#f1faee] border border-[#a8dadc]/40 text-xs sm:text-sm px-2 sm:px-3 py-1 backdrop-blur-sm">
+                              + New
+                            </Badge>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+
                   <p className="text-sm sm:text-base text-[#f1faee]/90 leading-relaxed">{parsedCommand.confirmationMessage}</p>
                   {parsedCommand.confidence < 0.7 && (
                     <p className="text-xs sm:text-sm text-[#e63946] animate-pulse font-medium">
@@ -1729,9 +1944,32 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
                 )}
 
                 {state === "asking_price" && (
-                  <div className="flex-1 text-center text-[#f1faee] text-base sm:text-lg py-4">
-                    Listening for price...
-                  </div>
+                  <>
+                    <Button
+                      onClick={() => {
+                        // Stop recording and skip price (pass null)
+                        if (confirmationRecorderRef.current && confirmationRecorderRef.current.state === "recording") {
+                          confirmationRecorderRef.current.stop();
+                        }
+                        // Continue without price
+                        if (pendingProductsQueue.length > 0) {
+                          const getCookie = (name: string) => {
+                            const value = `; ${document.cookie}`;
+                            const parts = value.split(`; ${name}=`);
+                            if (parts.length === 2) return parts.pop()?.split(';').shift();
+                            return null;
+                          };
+                          const currentLang = getCookie('language') || localStorage.getItem('language') || 'en';
+                          createProductWithPrice(pendingProductsQueue[0], null, currentLang, pendingProductsQueue);
+                        }
+                      }}
+                      variant="outline"
+                      className="flex-1 bg-white/5 hover:bg-white/10 border border-white/20 backdrop-blur-sm transition-all duration-500 hover:scale-105 text-[#f1faee] text-base sm:text-lg py-4 sm:py-6 rounded-xl sm:rounded-2xl"
+                      size="lg"
+                    >
+                      Skip Price
+                    </Button>
+                  </>
                 )}
 
                 {/* Emergency stop button - visible when not idle */}
