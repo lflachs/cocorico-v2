@@ -23,6 +23,22 @@ const config = isDev ? nextConfig : withPWA({
   skipWaiting: true,
   disable: false,
   buildExcludes: [/middleware-manifest\.json$/],
+  scope: "/",
+  sw: "sw.js",
+  publicExcludes: ["!sounds/**/*", "!uploads/**/*"],
+  // Ensure permissions work in standalone mode
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "offlineCache",
+        expiration: {
+          maxEntries: 200,
+        },
+      },
+    },
+  ],
 })(nextConfig);
 
 export default config;
