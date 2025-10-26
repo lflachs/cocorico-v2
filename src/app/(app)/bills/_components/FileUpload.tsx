@@ -21,6 +21,7 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -84,9 +85,12 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
       onFilesChange(newFiles);
     }
 
-    // Reset input
+    // Reset both inputs
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
     }
   };
 
@@ -98,6 +102,10 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
 
   const handleBrowseClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
   };
 
   const getTotalSize = () => {
@@ -131,7 +139,7 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
             </Button>
             <Button
               variant="outline"
-              onClick={handleBrowseClick}
+              onClick={handleCameraClick}
               className="border-gray-300"
             >
               <Camera className="w-4 h-4 mr-2" />
@@ -139,10 +147,21 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
             </Button>
           </div>
 
+          {/* File browse input - no capture attribute */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,application/pdf"
+            multiple
+            onChange={handleFileInput}
+            className="hidden"
+          />
+
+          {/* Camera capture input - with capture attribute */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
             capture="environment"
             multiple
             onChange={handleFileInput}
