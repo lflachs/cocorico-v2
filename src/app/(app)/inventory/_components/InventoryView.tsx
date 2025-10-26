@@ -419,47 +419,47 @@ Product: ${p.name}
 
   return (
     <>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full overflow-hidden">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-          <TabsTrigger value="inventory" className="gap-1 sm:gap-2">
+          <TabsTrigger value="inventory" className="gap-1 sm:gap-2 min-w-0">
             <Package className="w-4 h-4 shrink-0" />
             <span className="truncate">Stock</span>
           </TabsTrigger>
-          <TabsTrigger value="producers" className="gap-1 sm:gap-2">
+          <TabsTrigger value="producers" className="gap-1 sm:gap-2 min-w-0">
             <MapPin className="w-4 h-4 shrink-0" />
             <span className="truncate text-xs sm:text-sm">Trouver des producteurs</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory" className="space-y-6">
+        <TabsContent value="inventory" className="space-y-6 overflow-hidden">
           {/* Stock Valuation Summary */}
-          <Card>
+          <Card className="overflow-hidden">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Euro className="h-5 w-5 text-green-600" />
-              {t('inventory.value.title')}
+            <CardTitle className="flex items-center gap-2 text-lg min-w-0">
+              <Euro className="h-5 w-5 text-green-600 shrink-0" />
+              <span className="truncate">{t('inventory.value.title')}</span>
             </CardTitle>
-            <CardDescription>{t('inventory.value.description')}</CardDescription>
+            <CardDescription className="truncate">{t('inventory.value.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-lg border border-green-100 bg-green-50 p-4 text-center">
-                <div className="text-2xl font-bold text-green-600 sm:text-3xl break-words">
+              <div className="rounded-lg border border-green-100 bg-green-50 p-4 text-center overflow-hidden">
+                <div className="text-2xl font-bold text-green-600 sm:text-3xl truncate">
                   {calculateStockValueFromProducts().toFixed(2)} €
                 </div>
-                <p className="mt-1 text-sm font-medium text-green-700">
+                <p className="mt-1 text-sm font-medium text-green-700 truncate">
                   {t('inventory.value.total')}
                 </p>
               </div>
-              <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center">
-                <div className="text-xl font-bold text-blue-600 sm:text-2xl">{productsWithValue.length}</div>
-                <p className="mt-1 text-sm font-medium text-blue-700">
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center overflow-hidden">
+                <div className="text-xl font-bold text-blue-600 sm:text-2xl truncate">{productsWithValue.length}</div>
+                <p className="mt-1 text-sm font-medium text-blue-700 truncate">
                   {t('inventory.value.valued')}
                 </p>
               </div>
-              <div className="rounded-lg border border-purple-100 bg-purple-50 p-4 text-center">
-                <div className="text-xl font-bold text-purple-600 sm:text-2xl break-words">{avgValue.toFixed(2)} €</div>
-                <p className="mt-1 text-sm font-medium text-purple-700">
+              <div className="rounded-lg border border-purple-100 bg-purple-50 p-4 text-center overflow-hidden">
+                <div className="text-xl font-bold text-purple-600 sm:text-2xl truncate">{avgValue.toFixed(2)} €</div>
+                <p className="mt-1 text-sm font-medium text-purple-700 truncate">
                   {t('inventory.value.average')}
                 </p>
               </div>
@@ -468,14 +468,14 @@ Product: ${p.name}
         </Card>
 
         {/* Main Inventory Table */}
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
-            <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between overflow-hidden">
               <span className="flex items-center gap-2 min-w-0">
                 <Package className="h-5 w-5 shrink-0" />
                 <span className="truncate">{t('inventory.title')}</span>
               </span>
-              <div className="flex flex-wrap gap-2 shrink-0">
+              <div className="flex flex-wrap gap-2 shrink-0 min-w-0">
                 {selectedProducts.size > 0 && (
                   <Button
                     onClick={bulkDeleteProducts}
@@ -507,9 +507,9 @@ Product: ${p.name}
                 </Button>
               </div>
             </CardTitle>
-            <CardDescription>{t('inventory.description')}</CardDescription>
+            <CardDescription className="truncate">{t('inventory.description')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-hidden">
             {/* Search */}
             <div className="mb-4">
               <div className="relative">
@@ -524,56 +524,238 @@ Product: ${p.name}
             </div>
 
             {/* Stock Filters */}
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Button
-                onClick={() => {
-                  setStockFilter('all');
-                  updateFilterURL('all');
-                }}
-                size="sm"
-                variant={stockFilter === 'all' ? 'default' : 'outline'}
-                className="cursor-pointer shrink-0"
-              >
-                <Filter className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="text-xs sm:text-sm">All Items ({initialProducts.length})</span>
-              </Button>
-              <Button
-                onClick={() => {
-                  setStockFilter('low');
-                  updateFilterURL('low');
-                }}
-                size="sm"
-                variant={stockFilter === 'low' ? 'default' : 'outline'}
-                className="cursor-pointer shrink-0"
-              >
-                <AlertTriangle className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="text-xs sm:text-sm">Low Stock ({lowStockCount})</span>
-              </Button>
-              <Button
-                onClick={() => {
-                  setStockFilter('critical');
-                  updateFilterURL('critical');
-                }}
-                size="sm"
-                variant={stockFilter === 'critical' ? 'default' : 'outline'}
-                className="cursor-pointer shrink-0"
-              >
-                <AlertTriangle className="h-4 w-4 mr-1 sm:mr-2 text-red-500" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Critical Only ({criticalStockCount})</span>
-              </Button>
+            <div className="mb-4 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => {
+                    setStockFilter('all');
+                    updateFilterURL('all');
+                  }}
+                  size="sm"
+                  variant={stockFilter === 'all' ? 'default' : 'outline'}
+                  className="cursor-pointer flex-1 min-w-[90px] sm:flex-none"
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  <span className="text-xs truncate">All ({initialProducts.length})</span>
+                </Button>
+                <Button
+                  onClick={() => {
+                    setStockFilter('low');
+                    updateFilterURL('low');
+                  }}
+                  size="sm"
+                  variant={stockFilter === 'low' ? 'default' : 'outline'}
+                  className="cursor-pointer flex-1 min-w-[90px] sm:flex-none"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  <span className="text-xs truncate">Low ({lowStockCount})</span>
+                </Button>
+                <Button
+                  onClick={() => {
+                    setStockFilter('critical');
+                    updateFilterURL('critical');
+                  }}
+                  size="sm"
+                  variant={stockFilter === 'critical' ? 'default' : 'outline'}
+                  className="cursor-pointer flex-1 min-w-[90px] sm:flex-none"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-1 text-red-500" />
+                  <span className="text-xs truncate">Critical ({criticalStockCount})</span>
+                </Button>
+              </div>
               {stockFilter !== 'all' && (
-                <span className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs text-gray-600">
                   Showing {filteredProducts.length} of {initialProducts.length} items
-                </span>
+                </div>
               )}
             </div>
 
-            {/* Products Table */}
+            {/* Products Table - Desktop */}
             {filteredProducts.length > 0 ? (
-              <div className="-mx-6 overflow-x-auto">
-                <div className="inline-block min-w-full px-6">
-                  <div className="max-h-[600px] overflow-y-auto border-y">
-                    <table className="min-w-full text-sm">
+              <>
+                {/* Mobile Card View */}
+                <div className="block lg:hidden space-y-3 overflow-hidden">
+                  {filteredProducts.map((product) => {
+                    const stockStatus = getStockStatus(product);
+                    const cardClass =
+                      stockStatus === 'critical'
+                        ? 'border-l-4 border-l-red-500 bg-red-50/30'
+                        : stockStatus === 'low'
+                        ? 'border-l-4 border-l-orange-500 bg-orange-50/30'
+                        : '';
+
+                    return (
+                      <Card key={product.id} className={`${cardClass} overflow-hidden`}>
+                        <CardContent className="p-3">
+                          {/* Header with checkbox and name */}
+                          <div className="flex items-start gap-2 mb-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.has(product.id)}
+                              onChange={() => toggleSelectProduct(product.id)}
+                              className="h-4 w-4 mt-0.5 shrink-0 cursor-pointer rounded border-gray-300"
+                            />
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              {editingProduct === product.id ? (
+                                <Input
+                                  value={editValues.name}
+                                  onChange={(e) =>
+                                    setEditValues({ ...editValues, name: e.target.value })
+                                  }
+                                  className="w-full h-8 text-sm font-semibold"
+                                />
+                              ) : (
+                                <h3 className="font-semibold text-sm truncate">{product.name}</h3>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Product Details Grid */}
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            {/* Quantity */}
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-gray-500 mb-0.5 truncate">{t('inventory.table.quantity')}</p>
+                              {editingProduct === product.id ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={editValues.quantity}
+                                  onChange={(e) =>
+                                    setEditValues({
+                                      ...editValues,
+                                      quantity: parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="w-full h-7 text-xs"
+                                />
+                              ) : (
+                                <p className="font-mono font-medium text-xs truncate">{product.quantity.toFixed(1)}</p>
+                              )}
+                            </div>
+
+                            {/* Unit */}
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-gray-500 mb-0.5 truncate">{t('inventory.table.unit')}</p>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">{product.unit}</Badge>
+                            </div>
+
+                            {/* Unit Price */}
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-gray-500 mb-0.5 truncate">{t('inventory.table.unitPrice')}</p>
+                              {editingProduct === product.id ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={editValues.unitPrice ?? ''}
+                                  onChange={(e) =>
+                                    setEditValues({
+                                      ...editValues,
+                                      unitPrice:
+                                        e.target.value === '' ? null : parseFloat(e.target.value),
+                                    })
+                                  }
+                                  className="w-full h-7 text-xs"
+                                  placeholder="€"
+                                />
+                              ) : (
+                                <p className="font-mono text-xs truncate">
+                                  {product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Total Value */}
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-gray-500 mb-0.5 truncate">{t('inventory.table.totalValue')}</p>
+                              <p className="font-mono font-medium text-green-600 text-xs truncate">
+                                {product.unitPrice ? `${calculateTotalValue(product).toFixed(2)} €` : '-'}
+                              </p>
+                            </div>
+
+                            {/* Par Level */}
+                            <div className="col-span-2 min-w-0">
+                              <p className="text-[10px] text-gray-500 mb-0.5 truncate">{t('inventory.table.parLevel')}</p>
+                              {editingProduct === product.id ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={editValues.parLevel ?? ''}
+                                  onChange={(e) =>
+                                    setEditValues({
+                                      ...editValues,
+                                      parLevel:
+                                        e.target.value === '' ? null : parseFloat(e.target.value),
+                                    })
+                                  }
+                                  className="w-full h-7 text-xs"
+                                  placeholder="0.0"
+                                />
+                              ) : (
+                                <p className="font-mono text-xs truncate">
+                                  {product.parLevel ? product.parLevel.toFixed(1) : (
+                                    <span className="text-[10px] text-gray-400">-</span>
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-1.5 pt-2 border-t">
+                            {editingProduct === product.id ? (
+                              <>
+                                <Button
+                                  onClick={() => saveEdit(product.id)}
+                                  size="sm"
+                                  className="flex-1 bg-green-600 hover:bg-green-700 h-8 text-xs px-2"
+                                >
+                                  <Check className="h-3 w-3 mr-1" />
+                                  <span className="truncate">Save</span>
+                                </Button>
+                                <Button
+                                  onClick={cancelEditing}
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 h-8 text-xs px-2"
+                                >
+                                  <X className="h-3 w-3 mr-1" />
+                                  <span className="truncate">Cancel</span>
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  onClick={() => startEditing(product)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 h-8 text-xs px-2"
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  <span className="truncate">Edit</span>
+                                </Button>
+                                <Button
+                                  onClick={() => deleteProduct(product.id, product.name)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 text-red-600 hover:bg-red-50 h-8 text-xs px-2"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  <span className="truncate">Delete</span>
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden lg:block -mx-6 overflow-x-auto">
+                  <div className="inline-block min-w-full px-6">
+                    <div className="max-h-[600px] overflow-y-auto border-y">
+                      <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr className="border-b bg-gray-50">
                       <th className="pl-6 pr-2 py-2.5 text-left font-medium min-w-[50px] bg-gray-50">
@@ -820,6 +1002,7 @@ Product: ${p.name}
                   </div>
                 </div>
               </div>
+              </>
             ) : (
               <div className="py-8 text-center">
                 <Package className="mx-auto mb-4 h-12 w-12 text-gray-400" />

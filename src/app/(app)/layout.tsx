@@ -7,6 +7,7 @@ import { MobileMenuToggle } from '@/components/layout/MobileMenuToggle';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { VoiceAssistant } from '@/components/voice/VoiceAssistant';
+import { PermissionManager } from '@/components/PermissionManager';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -29,13 +30,16 @@ function AppContent({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 flex-1 flex-col lg:ml-0">
         <MobileHeader />
 
-        <main className="flex-1 overflow-y-auto overscroll-contain p-8 px-4 pb-20">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-8 px-4 pb-20">
           <div className="mx-auto min-h-full max-w-7xl space-y-6">{children}</div>
         </main>
       </div>
 
       {/* Global Voice Assistant */}
       <VoiceAssistant onInventoryUpdate={() => router.refresh()} />
+
+      {/* Permission Manager for PWA features */}
+      <PermissionManager />
     </div>
   );
 }

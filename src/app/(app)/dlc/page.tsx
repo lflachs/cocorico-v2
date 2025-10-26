@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Upload, Calendar, Package, AlertTriangle } from "lucide-react";
+import { Calendar, Package, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/PageHeader";
+import { CreateButton } from "@/components/CreateButton";
+import { NotificationPrompt } from "@/components/NotificationPrompt";
 import Link from "next/link";
 
 type DlcItem = {
@@ -117,40 +119,44 @@ export default function DlcPage() {
         icon={Calendar}
       />
 
+      {/* Notification Prompt */}
+      <NotificationPrompt />
+
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
+          <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={filter === "active" ? "default" : "outline"}
                 onClick={() => setFilter("active")}
-                className="cursor-pointer"
+                className="cursor-pointer flex-1 min-w-[80px] sm:flex-none"
+                size="sm"
               >
                 Active
               </Button>
               <Button
                 variant={filter === "expiring" ? "default" : "outline"}
                 onClick={() => setFilter("expiring")}
-                className="cursor-pointer"
+                className="cursor-pointer flex-1 min-w-[80px] sm:flex-none"
+                size="sm"
               >
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Expiring Soon
+                <AlertTriangle className="mr-1 h-4 w-4" />
+                <span className="hidden sm:inline">Expiring Soon</span>
+                <span className="sm:hidden">Expiring</span>
               </Button>
               <Button
                 variant={filter === "all" ? "default" : "outline"}
                 onClick={() => setFilter("all")}
-                className="cursor-pointer"
+                className="cursor-pointer flex-1 min-w-[80px] sm:flex-none"
+                size="sm"
               >
                 All
               </Button>
             </div>
-            <Link href="/dlc/upload">
-              <Button className="gap-2 cursor-pointer">
-                <Upload className="h-4 w-4" />
-                Scan Label
-              </Button>
+            <Link href="/dlc/new" className="w-full sm:w-auto">
+              <CreateButton className="w-full sm:w-auto">Add Best Before</CreateButton>
             </Link>
-          </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
 
@@ -163,65 +169,63 @@ export default function DlcPage() {
               <div className="text-center">
                 <Calendar className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-gray-500">No expiration dates found</p>
-                <Link href="/dlc/upload">
-                  <Button className="mt-4 cursor-pointer" variant="outline">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Scan your first label
-                  </Button>
+                <Link href="/dlc/new">
+                  <CreateButton className="mt-4">Add Best Before</CreateButton>
                 </Link>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               {dlcs.map((dlc) => (
-                <div key={dlc.id} className="border rounded-lg p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
-                        <Package className="h-6 w-6 text-blue-600" />
+                <div key={dlc.id} className="border rounded-lg p-4 sm:p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex gap-3 sm:gap-4 min-w-0">
+                      <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-blue-50 shrink-0">
+                        <Package className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold">{dlc.product.name}</h3>
-                        <div className="mt-1 flex items-center gap-4 text-sm text-gray-600">
-                          <span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold truncate">{dlc.product.name}</h3>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+                          <span className="whitespace-nowrap">
                             {dlc.quantity} {dlc.unit}
                           </span>
-                          <span>•</span>
-                          <span>
+                          <span className="hidden sm:inline">•</span>
+                          <span className="whitespace-nowrap">
                             Expires: {new Date(dlc.expirationDate).toLocaleDateString()}
                           </span>
                           {dlc.batchNumber && (
                             <>
-                              <span>•</span>
-                              <span>Lot: {dlc.batchNumber}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="whitespace-nowrap">Lot: {dlc.batchNumber}</span>
                             </>
                           )}
                           {dlc.supplier && (
                             <>
-                              <span>•</span>
-                              <span>{dlc.supplier.name}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="whitespace-nowrap">{dlc.supplier.name}</span>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {getStatusBadge(dlc)}
                       {dlc.status === "ACTIVE" && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleConsumed(dlc.id)}
-                            className="cursor-pointer"
+                            className="cursor-pointer text-xs sm:text-sm"
                           >
-                            Mark Consumed
+                            <span className="hidden sm:inline">Mark Consumed</span>
+                            <span className="sm:hidden">Consumed</span>
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleDiscarded(dlc.id)}
-                            className="cursor-pointer"
+                            className="cursor-pointer text-xs sm:text-sm"
                           >
                             Discard
                           </Button>

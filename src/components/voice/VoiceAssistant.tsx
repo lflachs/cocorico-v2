@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, lazy, Suspense, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { Mic, MicOff, Loader2, Volume2, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { SiriWaveform } from "./SiriWaveform";
+
+// Lazy load the SiriWaveform component for better initial load performance
+const SiriWaveform = lazy(() => import("./SiriWaveform").then(module => ({ default: module.SiriWaveform })));
 
 type ConversationState = "idle" | "recording" | "transcribing" | "parsing" | "confirming" | "executing" | "speaking" | "asking_price";
 
@@ -1182,11 +1184,13 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     }
   };
 
-  // Speak text using OpenAI TTS
+  // Speak text using OpenAI TTS with mobile/iOS compatibility
   const speakText = async (text: string) => {
     try {
       setState("speaking");
       setSpokenText(text); // Show what's being said
+
+      console.log("[Voice] Speaking text:", text);
 
       const response = await fetch("/api/voice/speak", {
         method: "POST",
@@ -1201,38 +1205,62 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
 
-      // Play audio with iOS compatibility
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      console.log("[Voice] Audio blob created, size:", audioBlob.size);
 
-      // iOS requires explicit load before play
-      audio.load();
+      // Create an AudioContext for better mobile compatibility
+      // Reuse existing context if available, or create a new one
+      let audioContext = audioContextRef.current;
+      if (!audioContext || audioContext.state === 'closed') {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = audioContext;
+      }
 
-      await new Promise<void>((resolve) => {
-        audio.onended = () => {
+      // Resume AudioContext if it's suspended (required on iOS/mobile)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+        console.log("[Voice] AudioContext resumed");
+      }
+
+      // Convert blob to ArrayBuffer
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Decode audio data
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      console.log("[Voice] Audio decoded successfully, duration:", audioBuffer.duration);
+
+      // Create buffer source
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+
+      // Play audio and wait for it to finish
+      await new Promise<void>((resolve, reject) => {
+        source.onended = () => {
+          console.log("[Voice] Audio playback ended");
           resolve();
         };
-        audio.onerror = (e) => {
-          console.error("Audio playback error:", e);
-          // On iOS, if autoplay fails, still resolve to continue
-          resolve();
-        };
 
-        // Try to play with iOS compatibility
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.error("Play failed:", error);
-            // On iOS, autoplay might fail - user needs to interact first
-            // We'll still resolve to continue the flow
+        // Start playback
+        try {
+          source.start(0);
+          console.log("[Voice] Audio playback started");
+
+          // Set a timeout as a fallback in case onended doesn't fire
+          const duration = audioBuffer.duration * 1000 + 500; // Add 500ms buffer
+          setTimeout(() => {
+            console.log("[Voice] Audio playback timeout reached");
             resolve();
-          });
+          }, duration);
+        } catch (error) {
+          console.error("[Voice] Error starting audio playback:", error);
+          reject(error);
         }
       });
 
       URL.revokeObjectURL(audioUrl);
     } catch (error) {
-      console.error("TTS error:", error);
+      console.error("[Voice] TTS error:", error);
+      // Don't throw - allow conversation to continue even if TTS fails
     }
   };
 
@@ -1679,7 +1707,7 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     }
   }, [isOpen]);
 
-  const getStateDisplay = () => {
+  const stateDisplay = useMemo(() => {
     switch (state) {
       case "recording":
         return { text: "Listening...", icon: Mic, color: "text-red-500" };
@@ -1698,9 +1726,8 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
       default:
         return { text: "Ready", icon: Mic, color: "text-gray-500" };
     }
-  };
+  }, [state]);
 
-  const stateDisplay = getStateDisplay();
   const StateIcon = stateDisplay.icon;
 
   return (
@@ -1796,11 +1823,17 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
             <div className="space-y-4 sm:space-y-6 w-full max-w-3xl">
               {/* Siri-like Waveform Animation */}
               <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 p-4 sm:p-6 md:p-8 shadow-lg animate-in fade-in scale-in duration-700 delay-300">
-                <SiriWaveform
-                  isActive={state === "recording" || state === "speaking" || state === "transcribing"}
-                  audioLevel={audioLevel}
-                  state={state}
-                />
+                <Suspense fallback={
+                  <div className="w-full h-32 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#457b9d]" />
+                  </div>
+                }>
+                  <SiriWaveform
+                    isActive={state === "recording" || state === "speaking" || state === "transcribing"}
+                    audioLevel={audioLevel}
+                    state={state}
+                  />
+                </Suspense>
                 {/* State indicator overlay */}
                 <div className="flex items-center justify-center gap-2 sm:gap-3 py-3 sm:py-4 transition-all duration-300">
                   <StateIcon className={cn(
