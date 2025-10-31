@@ -13,6 +13,8 @@ export function SiriWaveform({ isActive, audioLevel = 0, state }: SiriWaveformPr
   const animationRef = useRef<number>();
   const phaseRef = useRef(0);
   const amplitudeRef = useRef(0);
+  const barsRef = useRef<number[]>([]);
+  const smoothedBarsRef = useRef<number[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -38,87 +40,156 @@ export function SiriWaveform({ isActive, audioLevel = 0, state }: SiriWaveformPr
     const height = rect.height;
     const centerY = height / 2;
 
-    // Color scheme based on state
+    // Color scheme based on state - updated for brand colors
     const getColors = () => {
       switch (state) {
         case "recording":
-          return ["#FF0080", "#FF6B9D", "#FF3E9A"]; // Pink/Red
+          return {
+            primary: "#e63946",
+            secondary: "#f1faee",
+            tertiary: "#457b9d",
+            glow: "rgba(230, 57, 70, 0.3)"
+          };
         case "transcribing":
         case "parsing":
-          return ["#4F46E5", "#7C3AED", "#EC4899"]; // Purple/Pink gradient
+          return {
+            primary: "#457b9d",
+            secondary: "#a8dadc",
+            tertiary: "#1d3557",
+            glow: "rgba(69, 123, 157, 0.3)"
+          };
         case "speaking":
-          return ["#10B981", "#06B6D4", "#3B82F6"]; // Green/Cyan/Blue
+          return {
+            primary: "#a8dadc",
+            secondary: "#f1faee",
+            tertiary: "#457b9d",
+            glow: "rgba(168, 218, 220, 0.3)"
+          };
         case "executing":
-          return ["#F59E0B", "#EF4444", "#EC4899"]; // Orange/Red/Pink
+          return {
+            primary: "#457b9d",
+            secondary: "#e63946",
+            tertiary: "#1d3557",
+            glow: "rgba(69, 123, 157, 0.3)"
+          };
         default:
-          return ["#6366F1", "#8B5CF6", "#D946EF"]; // Default purple gradient
+          return {
+            primary: "#1d3557",
+            secondary: "#457b9d",
+            tertiary: "#a8dadc",
+            glow: "rgba(29, 53, 87, 0.3)"
+          };
       }
     };
 
     const colors = getColors();
 
     // Smooth amplitude transition
-    const targetAmplitude = isActive ? (audioLevel > 0 ? audioLevel : 0.3) : 0.05;
+    const targetAmplitude = isActive ? (audioLevel > 0 ? audioLevel * 1.2 : 0.35) : 0.08;
+
+    // Initialize bars if needed
+    const numBars = 60; // Increased for smoother visualization
+    if (barsRef.current.length === 0) {
+      barsRef.current = new Array(numBars).fill(0);
+      smoothedBarsRef.current = new Array(numBars).fill(0);
+    }
 
     const animate = () => {
       // Smooth amplitude interpolation
-      amplitudeRef.current += (targetAmplitude - amplitudeRef.current) * 0.1;
+      amplitudeRef.current += (targetAmplitude - amplitudeRef.current) * 0.15;
 
-      // Clear canvas
+      // Clear canvas with slight trail effect for smoother visuals
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, width, height);
       ctx.clearRect(0, 0, width, height);
 
       // Update phase for wave animation
-      phaseRef.current += isActive ? 0.05 : 0.02;
+      phaseRef.current += isActive ? 0.08 : 0.03;
 
-      const numWaves = 3; // Number of wave layers
-      const numBars = 40; // Number of bars across the width
+      // Generate frequency-like data with multiple sine waves
+      for (let i = 0; i < numBars; i++) {
+        // Create frequency distribution (higher in middle, lower at edges)
+        const normalizedPosition = (i - numBars / 2) / (numBars / 2);
+        const frequencyWeight = Math.exp(-normalizedPosition * normalizedPosition * 2);
 
-      // Draw multiple wave layers
-      for (let waveIndex = 0; waveIndex < numWaves; waveIndex++) {
-        const waveOffset = waveIndex * Math.PI / 3;
-        const opacity = 1 - (waveIndex * 0.3);
+        // Multiple sine waves with different frequencies to simulate audio spectrum
+        const lowFreq = Math.sin(i * 0.05 + phaseRef.current) * amplitudeRef.current;
+        const midFreq = Math.sin(i * 0.15 + phaseRef.current * 1.3) * amplitudeRef.current * 0.7;
+        const highFreq = Math.sin(i * 0.25 - phaseRef.current * 0.8) * amplitudeRef.current * 0.5;
 
-        // Create gradient for this wave
-        const gradient = ctx.createLinearGradient(0, centerY - 50, 0, centerY + 50);
-        gradient.addColorStop(0, `${colors[waveIndex % colors.length]}${Math.floor(opacity * 0.6 * 255).toString(16).padStart(2, '0')}`);
-        gradient.addColorStop(0.5, `${colors[(waveIndex + 1) % colors.length]}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
-        gradient.addColorStop(1, `${colors[(waveIndex + 2) % colors.length]}${Math.floor(opacity * 0.6 * 255).toString(16).padStart(2, '0')}`);
+        // Add randomness for natural feel (more when active)
+        const randomness = isActive ? (Math.random() - 0.5) * 0.3 * amplitudeRef.current : 0;
 
-        ctx.fillStyle = gradient;
+        // Combine waves with frequency distribution
+        const targetValue = (lowFreq + midFreq + highFreq + randomness) * frequencyWeight;
+        barsRef.current[i] = Math.abs(targetValue);
 
-        // Draw bars
-        for (let i = 0; i < numBars; i++) {
-          const x = (i / numBars) * width;
-          const barWidth = (width / numBars) * 0.6;
+        // Smooth the bars for fluid animation
+        smoothedBarsRef.current[i] += (barsRef.current[i] - smoothedBarsRef.current[i]) * 0.25;
+      }
 
-          // Calculate wave height using sine waves with different frequencies
-          const frequency = 0.02 + waveIndex * 0.01;
-          const wave1 = Math.sin(i * frequency + phaseRef.current + waveOffset) * amplitudeRef.current;
-          const wave2 = Math.sin(i * frequency * 1.5 - phaseRef.current + waveOffset) * amplitudeRef.current * 0.5;
-          const wave3 = Math.sin(i * frequency * 0.5 + phaseRef.current * 1.5 + waveOffset) * amplitudeRef.current * 0.3;
+      // Draw the visualization with rounded bars and gradients
+      const barWidth = (width / numBars) * 0.75;
+      const gap = (width / numBars) * 0.25;
 
-          const combinedWave = wave1 + wave2 + wave3;
-          const barHeight = Math.abs(combinedWave) * height * 0.4 + (isActive ? 5 : 2);
+      for (let i = 0; i < numBars; i++) {
+        const x = (i / numBars) * width + gap / 2;
+        const barValue = smoothedBarsRef.current[i];
+        const barHeight = Math.max(barValue * height * 0.6 + (isActive ? 8 : 3), 3);
 
-          // Draw bar (centered vertically)
-          ctx.fillRect(
-            x,
-            centerY - barHeight / 2,
-            barWidth,
-            barHeight
-          );
+        // Create vertical gradient for each bar
+        const barGradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2);
+
+        // Color intensity based on bar height and position
+        const intensity = Math.min(barValue / amplitudeRef.current, 1);
+        const positionFactor = Math.sin((i / numBars) * Math.PI);
+
+        if (isActive && intensity > 0.3) {
+          barGradient.addColorStop(0, colors.secondary + '60');
+          barGradient.addColorStop(0.5, colors.primary);
+          barGradient.addColorStop(1, colors.tertiary + '60');
+        } else {
+          barGradient.addColorStop(0, colors.primary + '40');
+          barGradient.addColorStop(0.5, colors.primary + '80');
+          barGradient.addColorStop(1, colors.primary + '40');
+        }
+
+        ctx.fillStyle = barGradient;
+
+        // Draw rounded bars
+        const radius = Math.min(barWidth / 2, barHeight / 2, 3);
+        const barY = centerY - barHeight / 2;
+
+        ctx.beginPath();
+        ctx.roundRect(x, barY, barWidth, barHeight, radius);
+        ctx.fill();
+
+        // Add glow effect for active state
+        if (isActive && intensity > 0.4) {
+          ctx.shadowBlur = 10 * intensity;
+          ctx.shadowColor = colors.primary;
+          ctx.fill();
+          ctx.shadowBlur = 0;
         }
       }
 
-      // Add central glow effect
+      // Add central glow effect with pulsing
       if (isActive) {
-        const glowGradient = ctx.createRadialGradient(width / 2, centerY, 0, width / 2, centerY, width / 2);
-        glowGradient.addColorStop(0, `${colors[0]}40`);
-        glowGradient.addColorStop(0.5, `${colors[1]}10`);
+        const pulseIntensity = 0.3 + Math.sin(phaseRef.current * 0.5) * 0.15;
+        const glowGradient = ctx.createRadialGradient(
+          width / 2, centerY, 0,
+          width / 2, centerY, width * 0.6
+        );
+        glowGradient.addColorStop(0, colors.glow);
+        glowGradient.addColorStop(0.3, `${colors.primary}10`);
         glowGradient.addColorStop(1, 'transparent');
 
+        ctx.globalCompositeOperation = 'screen';
         ctx.fillStyle = glowGradient;
+        ctx.globalAlpha = pulseIntensity;
         ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
       }
 
       animationRef.current = requestAnimationFrame(animate);
@@ -135,23 +206,36 @@ export function SiriWaveform({ isActive, audioLevel = 0, state }: SiriWaveformPr
   }, [isActive, audioLevel, state]);
 
   return (
-    <div className="relative w-full h-32 flex items-center justify-center">
+    <div className="relative w-full h-40 sm:h-48 flex items-center justify-center overflow-hidden">
       <canvas
         ref={canvasRef}
-        className="w-full h-full"
-        style={{ opacity: isActive ? 1 : 0.5 }}
+        className="w-full h-full transition-opacity duration-500"
+        style={{ opacity: isActive ? 1 : 0.6 }}
       />
-      {/* Optional: Add a subtle blur effect behind */}
+      {/* Animated blur effect behind with brand colors */}
       <div
-        className="absolute inset-0 -z-10 blur-xl opacity-30"
+        className="absolute inset-0 -z-10 blur-2xl opacity-40 transition-all duration-1000"
         style={{
-          background: `radial-gradient(circle, ${
-            state === "recording" ? "#FF0080" :
-            state === "speaking" ? "#10B981" :
-            "#6366F1"
-          }, transparent)`
+          background: `radial-gradient(ellipse at center, ${
+            state === "recording" ? "#e63946" :
+            state === "speaking" ? "#a8dadc" :
+            state === "transcribing" || state === "parsing" ? "#457b9d" :
+            "#1d3557"
+          }40, transparent 70%)`
         }}
       />
+      {/* Additional subtle particle effect */}
+      {isActive && (
+        <div className="absolute inset-0 -z-10">
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full animate-ping opacity-20"
+            style={{
+              backgroundColor: state === "recording" ? "#e63946" :
+                              state === "speaking" ? "#a8dadc" : "#457b9d"
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
