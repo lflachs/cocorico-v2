@@ -22,6 +22,7 @@ async function main() {
   await prisma.bill.deleteMany();
   await prisma.compositeIngredient.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.supplier.deleteMany();
   await prisma.user.deleteMany();
   console.log('✅ Cleanup complete\n');
 
@@ -50,6 +51,73 @@ async function main() {
     },
   });
   console.log('✅ Created 2 users\n');
+
+  // ============================================================================
+  // SUPPLIERS
+  // ============================================================================
+  console.log('🏢 Creating suppliers...');
+
+  const metro = await prisma.supplier.create({
+    data: {
+      name: 'Metro Cash & Carry',
+      contactName: 'Jean Dupont',
+      email: 'commandes@metro.fr',
+      phone: '+33 1 40 12 34 56',
+      address: '15 Avenue des Champs, 75008 Paris',
+      notes: 'Livraisons du lundi au vendredi, 7h-10h',
+      isActive: true,
+    },
+  });
+
+  const rungis = await prisma.supplier.create({
+    data: {
+      name: 'Rungis Marée',
+      contactName: 'Marie Leclerc',
+      email: 'poissons@rungis-maree.fr',
+      phone: '+33 1 45 67 89 01',
+      address: 'MIN de Rungis, Pavillon B3, 94150 Rungis',
+      notes: 'Spécialiste poissons et fruits de mer. Livraison quotidienne.',
+      isActive: true,
+    },
+  });
+
+  const lactalis = await prisma.supplier.create({
+    data: {
+      name: 'Lactalis',
+      contactName: 'Pierre Martin',
+      email: 'pro@lactalis.fr',
+      phone: '+33 2 43 59 00 00',
+      address: '10 rue Adolphe Beck, 53000 Laval',
+      notes: 'Produits laitiers premium',
+      isActive: true,
+    },
+  });
+
+  const legumes = await prisma.supplier.create({
+    data: {
+      name: 'Les Jardins du Marais',
+      contactName: 'Sophie Dubois',
+      email: 'contact@jardins-marais.fr',
+      phone: '+33 1 48 87 65 43',
+      address: '28 rue des Maraîchers, 75020 Paris',
+      notes: 'Légumes bio et de saison',
+      isActive: true,
+    },
+  });
+
+  const epicerie = await prisma.supplier.create({
+    data: {
+      name: 'Épicerie Centrale',
+      contactName: 'Luc Bernard',
+      email: 'commandes@epicerie-centrale.fr',
+      phone: '+33 1 42 36 78 90',
+      address: '5 boulevard Haussmann, 75009 Paris',
+      notes: 'Épicerie sèche et conserves',
+      isActive: true,
+    },
+  });
+
+  console.log('✅ Created 5 suppliers\n');
 
   // ============================================================================
   // BASE PRODUCTS (Ingredients)
@@ -367,9 +435,19 @@ async function main() {
       recipeIngredients: {
         create: [
           {
-            productId: productMap['Saumon norvégien'].id, // Using as placeholder for fish
-            quantityRequired: 0.1,
+            productId: productMap['Saumon norvégien'].id, // Mix of seafood
+            quantityRequired: 0.12,
             unit: 'KG',
+          },
+          {
+            productId: productMap['Crème fraîche 35%'].id,
+            quantityRequired: 0.03,
+            unit: 'L',
+          },
+          {
+            productId: productMap['Persil frais'].id,
+            quantityRequired: 0.5,
+            unit: 'BUNCH',
           },
         ],
       },
@@ -388,6 +466,21 @@ async function main() {
             productId: productMap['Filet de bœuf'].id, // Using beef as placeholder for veal
             quantityRequired: 0.12,
             unit: 'KG',
+          },
+          {
+            productId: productMap['Crème fraîche 35%'].id,
+            quantityRequired: 0.02,
+            unit: 'L',
+          },
+          {
+            productId: productMap['Œufs frais'].id,
+            quantityRequired: 1,
+            unit: 'PC',
+          },
+          {
+            productId: productMap['Persil frais'].id,
+            quantityRequired: 0.3,
+            unit: 'BUNCH',
           },
         ],
       },
@@ -412,6 +505,21 @@ async function main() {
             quantityRequired: 0.1,
             unit: 'KG',
           },
+          {
+            productId: productMap['Beurre doux'].id,
+            quantityRequired: 0.05,
+            unit: 'KG',
+          },
+          {
+            productId: productMap['Œufs frais'].id,
+            quantityRequired: 2,
+            unit: 'PC',
+          },
+          {
+            productId: productMap['Crème fraîche 35%'].id,
+            quantityRequired: 0.05,
+            unit: 'L',
+          },
         ],
       },
     },
@@ -426,9 +534,24 @@ async function main() {
       recipeIngredients: {
         create: [
           {
-            productId: productMap['Poulet fermier (entier)'].id, // Placeholder for duck
+            productId: productMap['Poulet fermier (entier)'].id, // Placeholder for duck/foie gras
             quantityRequired: 0.15,
             unit: 'PC',
+          },
+          {
+            productId: productMap['Beurre doux'].id,
+            quantityRequired: 0.03,
+            unit: 'KG',
+          },
+          {
+            productId: productMap['Sucre en poudre'].id,
+            quantityRequired: 0.02,
+            unit: 'KG',
+          },
+          {
+            productId: productMap['Thym frais'].id,
+            quantityRequired: 0.3,
+            unit: 'BUNCH',
           },
         ],
       },
@@ -476,6 +599,21 @@ async function main() {
             quantityRequired: 0.15,
             unit: 'KG',
           },
+          {
+            productId: productMap['Crème fraîche 35%'].id,
+            quantityRequired: 0.04,
+            unit: 'L',
+          },
+          {
+            productId: productMap['Persil frais'].id,
+            quantityRequired: 0.5,
+            unit: 'BUNCH',
+          },
+          {
+            productId: productMap['Oignons'].id,
+            quantityRequired: 0.05,
+            unit: 'KG',
+          },
         ],
       },
     },
@@ -493,6 +631,21 @@ async function main() {
           {
             productId: productMap['Saumon norvégien'].id, // Placeholder for daurade
             quantityRequired: 0.25,
+            unit: 'KG',
+          },
+          {
+            productId: productMap['Persil frais'].id,
+            quantityRequired: 1,
+            unit: 'BUNCH',
+          },
+          {
+            productId: productMap['Carottes'].id,
+            quantityRequired: 0.08,
+            unit: 'KG',
+          },
+          {
+            productId: productMap['Oignons'].id,
+            quantityRequired: 0.05,
             unit: 'KG',
           },
         ],
@@ -652,6 +805,31 @@ async function main() {
             productId: productMap['Oignons'].id,
             quantityRequired: 0.1,
             unit: 'KG',
+          },
+          {
+            productId: productMap['Farine T55'].id,
+            quantityRequired: 0.15,
+            unit: 'KG',
+          },
+          {
+            productId: productMap['Œufs frais'].id,
+            quantityRequired: 3,
+            unit: 'PC',
+          },
+          {
+            productId: bechamel.id,
+            quantityRequired: 0.3,
+            unit: 'L',
+          },
+          {
+            productId: productMap['Persil frais'].id,
+            quantityRequired: 1,
+            unit: 'BUNCH',
+          },
+          {
+            productId: productMap['Thym frais'].id,
+            quantityRequired: 0.5,
+            unit: 'BUNCH',
           },
         ],
       },
@@ -1081,9 +1259,12 @@ async function main() {
   const bill1 = await prisma.bill.create({
     data: {
       filename: 'facture_metro_20250115.pdf',
-      supplier: 'Metro Cash & Carry',
+      supplier: {
+        connect: { id: metro.id }
+      },
       billDate: new Date('2025-01-15'),
       totalAmount: 1245.80,
+      status: 'PROCESSED',
       products: {
         create: [
           {
@@ -1112,7 +1293,7 @@ async function main() {
             productId: productMap['Lait entier'].id,
             movementType: MovementType.IN,
             quantity: 30,
-            balanceAfter: 50,
+            balanceAfter: 80,
             reason: 'Livraison facture Metro',
             userId: admin.id,
           },
@@ -1120,7 +1301,7 @@ async function main() {
             productId: productMap['Farine T55'].id,
             movementType: MovementType.IN,
             quantity: 50,
-            balanceAfter: 100,
+            balanceAfter: 150,
             reason: 'Livraison facture Metro',
             userId: admin.id,
           },
@@ -1128,7 +1309,7 @@ async function main() {
             productId: productMap['Poulet fermier (entier)'].id,
             movementType: MovementType.IN,
             quantity: 15,
-            balanceAfter: 30,
+            balanceAfter: 45,
             reason: 'Livraison facture Metro',
             userId: admin.id,
           },
@@ -1140,9 +1321,12 @@ async function main() {
   const bill2 = await prisma.bill.create({
     data: {
       filename: 'facture_rungis_20250116.pdf',
-      supplier: 'Rungis Marée',
+      supplier: {
+        connect: { id: rungis.id }
+      },
       billDate: new Date('2025-01-16'),
       totalAmount: 685.50,
+      status: 'PROCESSED',
       products: {
         create: [
           {
@@ -1165,7 +1349,7 @@ async function main() {
             productId: productMap['Saumon norvégien'].id,
             movementType: MovementType.IN,
             quantity: 15,
-            balanceAfter: 15,
+            balanceAfter: 30,
             reason: 'Livraison Rungis',
             userId: user.id,
           },
@@ -1173,7 +1357,7 @@ async function main() {
             productId: productMap['Filet de bœuf'].id,
             movementType: MovementType.IN,
             quantity: 8,
-            balanceAfter: 12,
+            balanceAfter: 20,
             reason: 'Livraison Rungis',
             userId: user.id,
           },
@@ -1182,7 +1366,193 @@ async function main() {
     },
   });
 
-  console.log('✅ Created 2 bills with stock movements\n');
+  const bill3 = await prisma.bill.create({
+    data: {
+      filename: 'facture_lactalis_20250117.pdf',
+      supplier: {
+        connect: { id: lactalis.id }
+      },
+      billDate: new Date('2025-01-17'),
+      totalAmount: 342.00,
+      status: 'PROCESSED',
+      products: {
+        create: [
+          {
+            productId: productMap['Crème fraîche 35%'].id,
+            quantityExtracted: 20,
+            unitPriceExtracted: 4.5,
+            totalValueExtracted: 90.0,
+          },
+          {
+            productId: productMap['Beurre doux'].id,
+            quantityExtracted: 10,
+            unitPriceExtracted: 8.5,
+            totalValueExtracted: 85.0,
+          },
+          {
+            productId: productMap['Œufs frais'].id,
+            quantityExtracted: 200,
+            unitPriceExtracted: 0.25,
+            totalValueExtracted: 50.0,
+          },
+        ],
+      },
+      stockMovements: {
+        create: [
+          {
+            productId: productMap['Crème fraîche 35%'].id,
+            movementType: MovementType.IN,
+            quantity: 20,
+            balanceAfter: 40,
+            reason: 'Livraison Lactalis',
+            userId: admin.id,
+          },
+          {
+            productId: productMap['Beurre doux'].id,
+            movementType: MovementType.IN,
+            quantity: 10,
+            balanceAfter: 25,
+            reason: 'Livraison Lactalis',
+            userId: admin.id,
+          },
+          {
+            productId: productMap['Œufs frais'].id,
+            movementType: MovementType.IN,
+            quantity: 200,
+            balanceAfter: 500,
+            reason: 'Livraison Lactalis',
+            userId: admin.id,
+          },
+        ],
+      },
+    },
+  });
+
+  const bill4 = await prisma.bill.create({
+    data: {
+      filename: 'facture_jardins_20250118.pdf',
+      supplier: {
+        connect: { id: legumes.id }
+      },
+      billDate: new Date('2025-01-18'),
+      totalAmount: 528.50,
+      status: 'PROCESSED',
+      products: {
+        create: [
+          {
+            productId: productMap['Pommes de terre'].id,
+            quantityExtracted: 100,
+            unitPriceExtracted: 1.8,
+            totalValueExtracted: 180.0,
+          },
+          {
+            productId: productMap['Carottes'].id,
+            quantityExtracted: 40,
+            unitPriceExtracted: 2.0,
+            totalValueExtracted: 80.0,
+          },
+          {
+            productId: productMap['Oignons'].id,
+            quantityExtracted: 35,
+            unitPriceExtracted: 1.5,
+            totalValueExtracted: 52.5,
+          },
+          {
+            productId: productMap['Tomates'].id,
+            quantityExtracted: 30,
+            unitPriceExtracted: 3.5,
+            totalValueExtracted: 105.0,
+          },
+        ],
+      },
+      stockMovements: {
+        create: [
+          {
+            productId: productMap['Pommes de terre'].id,
+            movementType: MovementType.IN,
+            quantity: 100,
+            balanceAfter: 180,
+            reason: 'Livraison Jardins du Marais',
+            userId: user.id,
+          },
+          {
+            productId: productMap['Carottes'].id,
+            movementType: MovementType.IN,
+            quantity: 40,
+            balanceAfter: 65,
+            reason: 'Livraison Jardins du Marais',
+            userId: user.id,
+          },
+          {
+            productId: productMap['Oignons'].id,
+            movementType: MovementType.IN,
+            quantity: 35,
+            balanceAfter: 65,
+            reason: 'Livraison Jardins du Marais',
+            userId: user.id,
+          },
+          {
+            productId: productMap['Tomates'].id,
+            movementType: MovementType.IN,
+            quantity: 30,
+            balanceAfter: 50,
+            reason: 'Livraison Jardins du Marais',
+            userId: user.id,
+          },
+        ],
+      },
+    },
+  });
+
+  const bill5 = await prisma.bill.create({
+    data: {
+      filename: 'facture_epicerie_20250119.pdf',
+      supplier: {
+        connect: { id: epicerie.id }
+      },
+      billDate: new Date('2025-01-19'),
+      totalAmount: 195.50,
+      status: 'PROCESSED',
+      products: {
+        create: [
+          {
+            productId: productMap['Sucre en poudre'].id,
+            quantityExtracted: 50,
+            unitPriceExtracted: 1.5,
+            totalValueExtracted: 75.0,
+          },
+          {
+            productId: productMap['Sel fin'].id,
+            quantityExtracted: 30,
+            unitPriceExtracted: 0.8,
+            totalValueExtracted: 24.0,
+          },
+        ],
+      },
+      stockMovements: {
+        create: [
+          {
+            productId: productMap['Sucre en poudre'].id,
+            movementType: MovementType.IN,
+            quantity: 50,
+            balanceAfter: 95,
+            reason: 'Livraison Épicerie Centrale',
+            userId: admin.id,
+          },
+          {
+            productId: productMap['Sel fin'].id,
+            movementType: MovementType.IN,
+            quantity: 30,
+            balanceAfter: 55,
+            reason: 'Livraison Épicerie Centrale',
+            userId: admin.id,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log('✅ Created 5 bills with stock movements\n');
 
   // ============================================================================
   // SALES
@@ -1194,6 +1564,16 @@ async function main() {
   yesterday.setDate(yesterday.getDate() - 1);
   const twoDaysAgo = new Date(today);
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const threeDaysAgo = new Date(today);
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const fourDaysAgo = new Date(today);
+  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+  const fiveDaysAgo = new Date(today);
+  fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+  const sixDaysAgo = new Date(today);
+  sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
+  const oneWeekAgo = new Date(today);
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   await prisma.sale.createMany({
     data: [
@@ -1219,6 +1599,18 @@ async function main() {
         userId: admin.id,
       },
       {
+        dishId: laMer.id,
+        quantitySold: 14,
+        saleDate: today,
+        userId: admin.id,
+      },
+      {
+        dishId: tarteVegetarienne.id,
+        quantitySold: 9,
+        saleDate: today,
+        userId: admin.id,
+      },
+      {
         dishId: chocolatXoco.id,
         quantitySold: 15,
         saleDate: today,
@@ -1227,6 +1619,12 @@ async function main() {
       {
         dishId: madeleine.id,
         quantitySold: 8,
+        saleDate: today,
+        userId: admin.id,
+      },
+      {
+        dishId: primeursFrages.id,
+        quantitySold: 11,
         saleDate: today,
         userId: admin.id,
       },
@@ -1250,8 +1648,26 @@ async function main() {
         userId: user.id,
       },
       {
+        dishId: carpaccioVeau.id,
+        quantitySold: 7,
+        saleDate: yesterday,
+        userId: user.id,
+      },
+      {
+        dishId: cevicheBar.id,
+        quantitySold: 9,
+        saleDate: yesterday,
+        userId: user.id,
+      },
+      {
         dishId: milleFeuille.id,
         quantitySold: 12,
+        saleDate: yesterday,
+        userId: user.id,
+      },
+      {
+        dishId: gourmand.id,
+        quantitySold: 10,
         saleDate: yesterday,
         userId: user.id,
       },
@@ -1269,15 +1685,221 @@ async function main() {
         userId: admin.id,
       },
       {
+        dishId: ongletBoeuf.id,
+        quantitySold: 15,
+        saleDate: twoDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: filetDaurade.id,
+        quantitySold: 8,
+        saleDate: twoDaysAgo,
+        userId: admin.id,
+      },
+      {
         dishId: rhubarbe.id,
         quantitySold: 11,
         saleDate: twoDaysAgo,
         userId: admin.id,
       },
+      {
+        dishId: milleFeuille.id,
+        quantitySold: 13,
+        saleDate: twoDaysAgo,
+        userId: admin.id,
+      },
+      // Three days ago
+      {
+        dishId: coteBoeuf.id,
+        quantitySold: 3,
+        saleDate: threeDaysAgo,
+        notes: '3 tables de 2 personnes',
+        userId: user.id,
+      },
+      {
+        dishId: gambas.id,
+        quantitySold: 11,
+        saleDate: threeDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: foieGras.id,
+        quantitySold: 8,
+        saleDate: threeDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: chocolatXoco.id,
+        quantitySold: 14,
+        saleDate: threeDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: fromages.id,
+        quantitySold: 7,
+        saleDate: threeDaysAgo,
+        userId: user.id,
+      },
+      // Four days ago
+      {
+        dishId: poularde.id,
+        quantitySold: 12,
+        saleDate: fourDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: epauleAgneau.id,
+        quantitySold: 10,
+        saleDate: fourDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: laMer.id,
+        quantitySold: 13,
+        saleDate: fourDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: tarteVegetarienne.id,
+        quantitySold: 8,
+        saleDate: fourDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: gourmand.id,
+        quantitySold: 9,
+        saleDate: fourDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: primeursFrages.id,
+        quantitySold: 10,
+        saleDate: fourDaysAgo,
+        userId: admin.id,
+      },
+      // Five days ago
+      {
+        dishId: filetDaurade.id,
+        quantitySold: 9,
+        saleDate: fiveDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: ongletBoeuf.id,
+        quantitySold: 13,
+        saleDate: fiveDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: vegetal.id,
+        quantitySold: 18,
+        saleDate: fiveDaysAgo,
+        notes: 'Forte demande végétarien',
+        userId: user.id,
+      },
+      {
+        dishId: cevicheBar.id,
+        quantitySold: 7,
+        saleDate: fiveDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: madeleine.id,
+        quantitySold: 11,
+        saleDate: fiveDaysAgo,
+        userId: user.id,
+      },
+      {
+        dishId: rhubarbe.id,
+        quantitySold: 8,
+        saleDate: fiveDaysAgo,
+        userId: user.id,
+      },
+      // Six days ago
+      {
+        dishId: quasiVeau.id,
+        quantitySold: 7,
+        saleDate: sixDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: gambas.id,
+        quantitySold: 10,
+        saleDate: sixDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: escargots.id,
+        quantitySold: 12,
+        saleDate: sixDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: carpaccioVeau.id,
+        quantitySold: 9,
+        saleDate: sixDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: chocolatXoco.id,
+        quantitySold: 16,
+        saleDate: sixDaysAgo,
+        userId: admin.id,
+      },
+      {
+        dishId: milleFeuille.id,
+        quantitySold: 14,
+        saleDate: sixDaysAgo,
+        userId: admin.id,
+      },
+      // One week ago
+      {
+        dishId: poularde.id,
+        quantitySold: 15,
+        saleDate: oneWeekAgo,
+        notes: 'Service complet',
+        userId: user.id,
+      },
+      {
+        dishId: epauleAgneau.id,
+        quantitySold: 11,
+        saleDate: oneWeekAgo,
+        userId: user.id,
+      },
+      {
+        dishId: foieGras.id,
+        quantitySold: 10,
+        saleDate: oneWeekAgo,
+        userId: user.id,
+      },
+      {
+        dishId: laMer.id,
+        quantitySold: 12,
+        saleDate: oneWeekAgo,
+        userId: user.id,
+      },
+      {
+        dishId: fromages.id,
+        quantitySold: 8,
+        saleDate: oneWeekAgo,
+        userId: user.id,
+      },
+      {
+        dishId: gourmand.id,
+        quantitySold: 11,
+        saleDate: oneWeekAgo,
+        userId: user.id,
+      },
+      {
+        dishId: primeursFrages.id,
+        quantitySold: 13,
+        saleDate: oneWeekAgo,
+        userId: user.id,
+      },
     ],
   });
 
-  console.log('✅ Created 12 sales records\n');
+  console.log('✅ Created 56 sales records over 7 days\n');
 
   // ============================================================================
   // DLC (Best Before Dates)
@@ -1301,7 +1923,7 @@ async function main() {
         quantity: 5,
         unit: Unit.KG,
         batchNumber: 'SAU-2025-001',
-        supplier: 'Rungis Marée',
+        supplierId: rungis.id,
         status: DLCStatus.ACTIVE,
         notes: 'Arrivage du 16/01',
       },
@@ -1311,7 +1933,7 @@ async function main() {
         quantity: 10,
         unit: Unit.PC,
         batchNumber: 'POU-2025-024',
-        supplier: 'Metro',
+        supplierId: metro.id,
         status: DLCStatus.ACTIVE,
       },
       {
@@ -1320,7 +1942,7 @@ async function main() {
         quantity: 8,
         unit: Unit.L,
         batchNumber: 'CRE-2025-008',
-        supplier: 'Lactalis',
+        supplierId: lactalis.id,
         status: DLCStatus.ACTIVE,
       },
       {
@@ -1329,36 +1951,140 @@ async function main() {
         quantity: 30,
         unit: Unit.PC,
         batchNumber: 'OEU-2025-002',
+        supplierId: lactalis.id,
         status: DLCStatus.EXPIRED,
         notes: 'À retirer du stock',
+      },
+      {
+        productId: productMap['Filet de bœuf'].id,
+        expirationDate: futureDate1,
+        quantity: 8,
+        unit: Unit.KG,
+        batchNumber: 'BEF-2025-012',
+        supplierId: rungis.id,
+        status: DLCStatus.ACTIVE,
+        notes: 'Viande premium',
+      },
+      {
+        productId: productMap['Tomates'].id,
+        expirationDate: futureDate1,
+        quantity: 15,
+        unit: Unit.KG,
+        batchNumber: 'TOM-2025-045',
+        supplierId: legumes.id,
+        status: DLCStatus.ACTIVE,
       },
     ],
   });
 
-  console.log('✅ Created 4 DLC records\n');
+  console.log('✅ Created 6 DLC records\n');
+
+  // ============================================================================
+  // DISPUTES
+  // ============================================================================
+  console.log('⚠️ Creating disputes...');
+
+  const dispute1 = await prisma.dispute.create({
+    data: {
+      billId: bill2.id,
+      type: 'COMPLAINT',
+      status: 'RESOLVED',
+      title: 'Qualité du saumon non conforme',
+      description: 'Le saumon livré présentait des signes de manque de fraîcheur. Odeur suspecte détectée à la réception.',
+      amountDisputed: 110.0,
+      resolvedAt: new Date('2025-01-17'),
+      resolutionNotes: 'Avoir de 50% accordé par le fournisseur pour la prochaine commande',
+      products: {
+        create: [
+          {
+            productId: productMap['Saumon norvégien'].id,
+            quantityDisputed: 5,
+            reason: 'Qualité non conforme',
+            description: 'Couleur terne, texture molle',
+          },
+        ],
+      },
+    },
+  });
+
+  const dispute2 = await prisma.dispute.create({
+    data: {
+      billId: bill1.id,
+      type: 'RETURN',
+      status: 'IN_PROGRESS',
+      title: 'Quantité de poulets manquante',
+      description: 'Facturé 15 poulets mais seulement 12 reçus dans la livraison',
+      amountDisputed: 37.5,
+      products: {
+        create: [
+          {
+            productId: productMap['Poulet fermier (entier)'].id,
+            quantityDisputed: 3,
+            reason: 'Quantité manquante',
+            description: 'Carton ouvert, 3 poulets manquants',
+          },
+        ],
+      },
+    },
+  });
+
+  console.log('✅ Created 2 disputes\n');
 
   // ============================================================================
   // SUMMARY
   // ============================================================================
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('✨ Database seeding completed successfully!\n');
-  console.log('📊 Summary (Sens Unique Restaurant Menu):');
+  console.log('📊 Summary (Sens Unique Restaurant - Cocorico v2):');
   console.log('  👤 Users: 2');
   console.log('     - admin@cocorico.fr (password: admin123)');
   console.log('     - user@cocorico.fr (password: user123)');
+  console.log('');
+  console.log('  🏢 Suppliers: 5');
+  console.log('     - Metro Cash & Carry');
+  console.log('     - Rungis Marée');
+  console.log('     - Lactalis');
+  console.log('     - Les Jardins du Marais');
+  console.log('     - Épicerie Centrale');
+  console.log('');
   console.log(`  📦 Base Products: ${products.length}`);
+  console.log('     - Produits laitiers: 4 (Lait, Crème, Beurre, Œufs)');
+  console.log('     - Épicerie sèche: 3 (Farine, Sucre, Sel)');
+  console.log('     - Viandes: 2 (Poulet, Bœuf)');
+  console.log('     - Poissons: 1 (Saumon)');
+  console.log('     - Légumes: 4 (Pommes de terre, Carottes, Oignons, Tomates)');
+  console.log('     - Herbes: 2 (Persil, Thym)');
+  console.log('');
   console.log('  🧪 Composite Products: 2');
-  console.log('  🍽️  Dishes: 21');
+  console.log('     - Crème pâtissière');
+  console.log('     - Sauce béchamel');
+  console.log('');
+  console.log('  🍽️  Dishes: 21 (from Sens Unique Restaurant)');
   console.log('     - 6 Entrées (La mer, Carpaccio veau, Tarte végétarienne, etc.)');
   console.log('     - 8 Plats (Daurade, Gambas, Onglet de bœuf, etc.)');
   console.log('     - 7 Desserts (Rhubarbe, Mille-feuille, Chocolat Xoco, etc.)');
+  console.log('');
   console.log('  📋 Menus: 2');
-  console.log('     - Menu Canaille (49€)');
-  console.log('     - Menu Gourmand (68€)');
-  console.log('  📄 Bills: 2');
-  console.log('  💰 Sales: 12');
-  console.log('  📅 DLC Records: 4');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  console.log('     - Menu Canaille (49€) - 3 courses');
+  console.log('     - Menu Gourmand (68€) - 3 courses');
+  console.log('');
+  console.log('  📄 Bills: 5 (with stock movements)');
+  console.log('     - Total amount: 2,997.30€');
+  console.log('');
+  console.log('  💰 Sales: 56 records (over 7 days)');
+  console.log('     - Detailed sales data for all dishes');
+  console.log('     - Average ~8 sales per day');
+  console.log('');
+  console.log('  📅 DLC Records: 6');
+  console.log('     - 5 active batches');
+  console.log('     - 1 expired batch (Œufs)');
+  console.log('');
+  console.log('  ⚠️  Disputes: 2');
+  console.log('     - 1 resolved (Qualité saumon)');
+  console.log('     - 1 in progress (Quantité poulets)');
+  console.log('');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🎉 Ready to test! All data is loaded.\n');
 }
 
 main()

@@ -96,11 +96,20 @@ export function QuickSales() {
 
   return (
     <>
-      <Card className="shadow-md w-full overflow-hidden">
-        <CardHeader className="bg-gradient-to-br from-success/5 via-transparent to-transparent">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-success flex-shrink-0" />
-            <span className="truncate">{t('today.quickSales.title')}</span>
+      <Card className="shadow-lg border-0 w-full overflow-hidden">
+        <CardHeader className="bg-gradient-to-br from-blue-50/80 via-blue-50/20 to-transparent dark:from-blue-950/10 dark:via-blue-950/5 dark:to-transparent">
+          <CardTitle className="flex items-center gap-3 text-base sm:text-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold truncate">{t('today.quickSales.title')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                {t('today.quickSales.subtitle') || 'Track your daily sales'}
+              </p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">

@@ -5,6 +5,7 @@ import {
   AlertOctagon,
   Upload,
   Calendar,
+  Database,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -15,7 +16,7 @@ export interface NavigationItem {
   labelKey: string;
 }
 
-export const navigationItems: NavigationItem[] = [
+const baseNavigationItems: NavigationItem[] = [
   {
     id: 'today',
     href: '/today',
@@ -53,3 +54,16 @@ export const navigationItems: NavigationItem[] = [
     labelKey: 'nav.disputes',
   },
 ];
+
+// Add dev tools link only in non-production environments
+const devToolsItem: NavigationItem = {
+  id: 'dev-tools',
+  href: '/settings/dev-tools',
+  icon: Database,
+  labelKey: 'nav.devTools',
+};
+
+export const navigationItems: NavigationItem[] =
+  process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
+    ? baseNavigationItems
+    : [...baseNavigationItems, devToolsItem];
