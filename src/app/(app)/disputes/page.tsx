@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { DisputeModal } from './_components/DisputeModal';
 import { ResolveModal } from './_components/ResolveModal';
 import { toast } from 'sonner';
+import { useLanguage } from '@/providers/LanguageProvider';
 
 /**
  * Disputes Page - Returns and complaints management
@@ -49,6 +50,7 @@ type Dispute = {
 };
 
 export default function DisputesPage() {
+  const { t } = useLanguage();
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'open'>('open');
@@ -84,14 +86,14 @@ export default function DisputesPage() {
       });
 
       if (response.ok) {
-        toast.success('Dispute status updated');
+        toast.success(t('common.success'));
         fetchDisputes();
       } else {
-        toast.error('Failed to update dispute status');
+        toast.error(t('common.error'));
       }
     } catch (error) {
       console.error('Error updating dispute:', error);
-      toast.error('Failed to update dispute status');
+      toast.error(t('common.error'));
     }
   };
 
@@ -101,7 +103,7 @@ export default function DisputesPage() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete dispute: "${title}"?`)) {
+    if (!confirm(`${t('common.confirmDelete')} "${title}"?`)) {
       return;
     }
 
@@ -111,14 +113,14 @@ export default function DisputesPage() {
       });
 
       if (response.ok) {
-        toast.success('Dispute deleted');
+        toast.success(t('common.deleted'));
         fetchDisputes();
       } else {
-        toast.error('Failed to delete dispute');
+        toast.error(t('common.error'));
       }
     } catch (error) {
       console.error('Error deleting dispute:', error);
-      toast.error('Failed to delete dispute');
+      toast.error(t('common.error'));
     }
   };
 
@@ -128,28 +130,28 @@ export default function DisputesPage() {
         return (
           <Badge variant="destructive" className="gap-1">
             <AlertCircle className="h-3 w-3" />
-            Open
+            {t('disputes.status.open')}
           </Badge>
         );
       case 'IN_PROGRESS':
         return (
           <Badge className="gap-1 bg-yellow-500">
             <Clock className="h-3 w-3" />
-            In Progress
+            {t('disputes.status.inProgress')}
           </Badge>
         );
       case 'RESOLVED':
         return (
           <Badge variant="secondary" className="gap-1 bg-green-600 text-white">
             <CheckCircle className="h-3 w-3" />
-            Resolved
+            {t('disputes.status.resolved')}
           </Badge>
         );
       case 'CLOSED':
         return (
           <Badge variant="secondary" className="gap-1">
             <XCircle className="h-3 w-3" />
-            Closed
+            {t('disputes.status.closed')}
           </Badge>
         );
       default:
@@ -160,11 +162,11 @@ export default function DisputesPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'RETURN':
-        return <Badge variant="outline">Return</Badge>;
+        return <Badge variant="outline">{t('disputes.type.return')}</Badge>;
       case 'COMPLAINT':
-        return <Badge variant="outline">Complaint</Badge>;
+        return <Badge variant="outline">{t('disputes.type.complaint')}</Badge>;
       case 'REFUND':
-        return <Badge variant="outline">Refund</Badge>;
+        return <Badge variant="outline">{t('disputes.type.refund')}</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;
     }
@@ -182,48 +184,48 @@ export default function DisputesPage() {
     <div className="space-y-6">
       {/* Header with gradient background */}
       <PageHeader
-        title={t('disputes.title') || 'Disputes'}
-        subtitle="Manage supplier disputes, returns, and complaints"
+        title={t('disputes.title')}
+        subtitle={t('disputes.subtitle')}
         icon={AlertCircle}
       />
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="space-y-4">
             <div className="flex gap-2">
               <Button
                 variant={filter === 'open' ? 'default' : 'outline'}
                 onClick={() => setFilter('open')}
-                className="cursor-pointer"
+                className="cursor-pointer flex-1"
               >
                 <AlertCircle className="mr-2 h-4 w-4" />
-                Open Disputes
+                {t('disputes.openDisputes')}
               </Button>
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
                 onClick={() => setFilter('all')}
-                className="cursor-pointer"
+                className="cursor-pointer flex-1"
               >
-                All Disputes
+                {t('disputes.allDisputes')}
               </Button>
             </div>
-            <Button onClick={() => setCreateModalOpen(true)} className="cursor-pointer gap-2">
+            <Button onClick={() => setCreateModalOpen(true)} className="cursor-pointer gap-2 w-full">
               <Plus className="h-4 w-4" />
-              Create Dispute
+              {t('disputes.createDispute')}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-8">
-              <p className="text-center text-gray-500">Loading...</p>
+              <p className="text-center text-gray-500">{t('common.loading')}</p>
             </div>
           ) : disputes.length === 0 ? (
             <div className="py-8">
               <div className="text-center">
                 <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-gray-500">
-                  {filter === 'open' ? 'No open disputes' : 'No disputes found'}
+                  {filter === 'open' ? t('disputes.noOpen') : t('disputes.noDisputes')}
                 </p>
                 <Button
                   onClick={() => setCreateModalOpen(true)}
@@ -231,7 +233,7 @@ export default function DisputesPage() {
                   variant="outline"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Create your first dispute
+                  {t('disputes.createFirst')}
                 </Button>
               </div>
             </div>
@@ -260,7 +262,7 @@ export default function DisputesPage() {
                             {getStatusBadge(dispute.status)}
                             {isUrgent && (
                               <Badge variant="destructive" className="text-xs">
-                                Urgent ({daysSince}d old)
+                                {t('disputes.urgent')} ({daysSince}d)
                               </Badge>
                             )}
                           </div>
@@ -273,26 +275,25 @@ export default function DisputesPage() {
                             <div className="flex items-center gap-1">
                               <FileText className="h-4 w-4" />
                               <span>
-                                Bill: {dispute.bill.filename}
+                                {t('disputes.bill')}: {dispute.bill.filename}
                                 {dispute.bill.supplier && ` • ${dispute.bill.supplier}`}
                               </span>
                             </div>
                             {dispute.amountDisputed && (
-                              <span>Amount: €{dispute.amountDisputed.toFixed(2)}</span>
+                              <span>{t('disputes.amount')}: €{dispute.amountDisputed.toFixed(2)}</span>
                             )}
                             {dispute.products.length > 0 && (
                               <span>
-                                {dispute.products.length} product
-                                {dispute.products.length > 1 ? 's' : ''}
+                                {dispute.products.length} {dispute.products.length > 1 ? t('disputes.products') : t('disputes.product')}
                               </span>
                             )}
-                            <span>Created {daysSince}d ago</span>
+                            <span>{t('disputes.createdAgo')} {daysSince}{t('disputes.daysOld')}</span>
                           </div>
 
                           {dispute.products.length > 0 && (
                             <div className="mt-3 space-y-1">
                               <p className="text-xs font-medium text-gray-500">
-                                Disputed Products:
+                                {t('disputes.disputedProducts')}:
                               </p>
                               {dispute.products.map((dp) => (
                                 <div key={dp.id} className="text-sm text-gray-600">
@@ -307,10 +308,10 @@ export default function DisputesPage() {
 
                           {dispute.resolvedAt && dispute.resolutionNotes && (
                             <div className="mt-3 rounded-md border border-green-200 bg-green-50 p-3">
-                              <p className="text-xs font-medium text-green-800">Resolution:</p>
+                              <p className="text-xs font-medium text-green-800">{t('disputes.resolution')}:</p>
                               <p className="text-sm text-green-700">{dispute.resolutionNotes}</p>
                               <p className="mt-1 text-xs text-green-600">
-                                Resolved on {new Date(dispute.resolvedAt).toLocaleDateString()}
+                                {t('disputes.resolvedOn')} {new Date(dispute.resolvedAt).toLocaleDateString()}
                               </p>
                             </div>
                           )}
@@ -326,14 +327,14 @@ export default function DisputesPage() {
                               onClick={() => handleStatusChange(dispute.id, 'IN_PROGRESS')}
                               className="cursor-pointer"
                             >
-                              Mark In Progress
+                              {t('disputes.markInProgress')}
                             </Button>
                             <Button
                               size="sm"
                               onClick={() => handleResolve(dispute)}
                               className="cursor-pointer bg-green-600 hover:bg-green-700"
                             >
-                              Resolve
+                              {t('disputes.resolve')}
                             </Button>
                           </>
                         )}
@@ -343,7 +344,7 @@ export default function DisputesPage() {
                             onClick={() => handleResolve(dispute)}
                             className="cursor-pointer bg-green-600 hover:bg-green-700"
                           >
-                            Resolve
+                            {t('disputes.resolve')}
                           </Button>
                         )}
                         {(dispute.status === 'RESOLVED' || dispute.status === 'CLOSED') && (
@@ -353,7 +354,7 @@ export default function DisputesPage() {
                             onClick={() => handleDelete(dispute.id, dispute.title)}
                             className="cursor-pointer text-red-600 hover:bg-red-50"
                           >
-                            Delete
+                            {t('common.delete')}
                           </Button>
                         )}
                       </div>
