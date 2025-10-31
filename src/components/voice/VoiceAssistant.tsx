@@ -1509,11 +1509,11 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
 
   // Auto-start recording when dialog opens
   useEffect(() => {
-    if (isOpen && state === "idle" && !isClosingRef.current) {
+    if (isOpen && state === "idle" && !isClosingRef.current && !isRecordingRef.current) {
       // Small delay before starting recording
       const timer = setTimeout(() => {
-        // Double check we're not closing
-        if (!isClosingRef.current) {
+        // Double check we're not closing and not already recording
+        if (!isClosingRef.current && !isRecordingRef.current && state === "idle") {
           console.log("[Voice] Auto-starting recording after dialog open");
           startRecording();
         }
@@ -1697,31 +1697,14 @@ export function VoiceAssistant({ onInventoryUpdate }: VoiceAssistantProps) {
     <>
       {/* Floating Voice Button with gradient animation - Brand Colors */}
       <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 group">
-        {/* Wake word toggle - visible on hover and when dialog is closed */}
-        {!isOpen && (
-          <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+        {/* Wake word status indicator - visible on hover when dialog is closed and wake word is active */}
+        {!isOpen && isWakeWordListening && (
+          <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1d3557]/90 backdrop-blur-lg border border-white/10 shadow-lg">
-              {isWakeWordListening && (
-                <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse shadow-sm shadow-[#e63946]/50" />
-              )}
+              <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse shadow-sm shadow-[#e63946]/50" />
               <span className="text-xs font-medium text-white/90 whitespace-nowrap">
                 Say "Cocorico"
               </span>
-              <button
-                onClick={toggleWakeWord}
-                className={cn(
-                  "relative inline-flex h-4 w-8 items-center rounded-full transition-colors duration-300",
-                  enableWakeWord ? "bg-[#457b9d]" : "bg-white/20"
-                )}
-                aria-label="Toggle wake word detection"
-              >
-                <span
-                  className={cn(
-                    "inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300",
-                    enableWakeWord ? "translate-x-4" : "translate-x-0.5"
-                  )}
-                />
-              </button>
             </div>
             {/* Invisible bridge to prevent gap */}
             <div className="absolute top-full left-0 right-0 h-2" />

@@ -40,15 +40,15 @@ export function SplashScreen() {
                 scale: 1.5,
                 opacity: 0,
                 rotate: 15,
-                y: -50
-              }}
-              transition={{
-                duration: 0.6,
-                ease: 'easeOut',
-                exit: {
+                y: -50,
+                transition: {
                   duration: 0.5,
                   ease: [0.6, 0.01, 0.05, 0.95]
                 }
+              }}
+              transition={{
+                duration: 0.6,
+                ease: 'easeOut'
               }}
               className="relative"
             >
@@ -68,15 +68,15 @@ export function SplashScreen() {
               exit={{
                 y: -20,
                 opacity: 0,
-                scale: 0.8
-              }}
-              transition={{
-                delay: 0.3,
-                duration: 0.5,
-                exit: {
+                scale: 0.8,
+                transition: {
                   duration: 0.3,
                   delay: 0
                 }
+              }}
+              transition={{
+                delay: 0.3,
+                duration: 0.5
               }}
               className="text-center"
             >
