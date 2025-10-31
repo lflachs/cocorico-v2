@@ -464,7 +464,7 @@ export function DishCreateFlow() {
                 <TooltipContent>
                   <p>
                     {!isFormValid
-                      ? t('menu.create.disabledTooltip').replace('menu', 'dish')
+                      ? t('dish.create.disabledTooltip')
                       : 'Please add at least one ingredient'}
                   </p>
                 </TooltipContent>
