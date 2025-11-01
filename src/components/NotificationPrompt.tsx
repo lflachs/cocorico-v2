@@ -19,10 +19,13 @@ export function NotificationPrompt() {
     const shouldShow = checkShouldShowPrompt();
     setShowPrompt(shouldShow);
 
-    // If already granted, start the notification scheduler
+    // If already granted, start the notification scheduler (singleton - only starts once)
     if ('Notification' in window && Notification.permission === 'granted') {
       scheduleDailyNotificationCheck();
     }
+
+    // Note: No cleanup needed because scheduler uses singleton pattern
+    // It will only run once per app session
   }, []);
 
   function checkShouldShowPrompt(): boolean {

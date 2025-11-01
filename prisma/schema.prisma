@@ -131,6 +131,7 @@ model StockMovement {
   // References
   billId    String?
   disputeId String?
+  saleId    String?
   userId    String?
 
   // Metadata
@@ -138,6 +139,7 @@ model StockMovement {
   description String?
   unitPrice   Float?
   totalValue  Float?
+  source      MovementSource @default(MANUAL) // Track if automated or manual
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -146,11 +148,14 @@ model StockMovement {
   product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   bill    Bill?    @relation(fields: [billId], references: [id])
   dispute Dispute? @relation(fields: [disputeId], references: [id])
+  sale    Sale?    @relation(fields: [saleId], references: [id])
   user    User?    @relation(fields: [userId], references: [id])
 
   @@index([productId])
   @@index([movementDate])
   @@index([billId])
+  @@index([saleId])
+  @@index([source])
   @@map("stock_movements")
 }
 
@@ -159,6 +164,14 @@ enum MovementType {
   OUT
   ADJUSTMENT
   INITIAL
+}
+
+enum MovementSource {
+  MANUAL              // Manual entry by user
+  SCAN_RECEPTION      // Automated from reception flow (bill scan)
+  SCAN_SALES          // Automated from sales flow (receipt scan)
+  RECIPE_DEDUCTION    // Automated stock deduction from recipe
+  SYSTEM_ADJUSTMENT   // System-initiated adjustment
 }
 
 // ============================================================================
@@ -442,8 +455,9 @@ model Sale {
   createdAt DateTime @default(now())
 
   // Relations
-  dish Dish  @relation(fields: [dishId], references: [id], onDelete: Restrict)
-  user User? @relation(fields: [userId], references: [id])
+  dish           Dish            @relation(fields: [dishId], references: [id], onDelete: Restrict)
+  user           User?           @relation(fields: [userId], references: [id])
+  stockMovements StockMovement[]
 
   @@index([dishId])
   @@index([saleDate])

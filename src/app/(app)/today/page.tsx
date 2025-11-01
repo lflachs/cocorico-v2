@@ -2,72 +2,90 @@ import { PageHeader } from '@/components/PageHeader';
 import { getTimeBasedGreeting } from '@/lib/utils/greeting';
 import { formatDateForLocale, getLocaleFromLanguage } from '@/lib/utils/date';
 import { getServerTranslation } from '@/lib/utils/language';
-import { getDailyInsights } from '@/lib/services/insights.service';
-import { DailyBrief } from './_components/DailyBrief';
-import { ReorderAlerts } from './_components/ReorderAlerts';
-import { UseTodayCard } from './_components/UseTodayCard';
-import { MenuStatusCard } from './_components/MenuStatusCard';
-import { QuickSales } from './_components/QuickSales';
+import { getCurrentMonthImpact, getUrgentAlerts } from '@/lib/services/impact.service';
+import { ImpactChart } from './_components_v2/ImpactChart';
+import { QuickActions } from './_components_v2/QuickActions';
+import { UrgentAlerts } from './_components_v2/UrgentAlerts';
+import { StreakBadge } from './_components_v2/StreakBadge';
 
 /**
- * Today Page - Smart dashboard for daily operations
- * Shows actionable insights and prioritized decisions
- * Fetches data server-side for optimal performance
+ * NEW Today Page - Simple, Gamified, Motivational
+ *
+ * Focus on what chefs care about:
+ * - Money saved (through waste prevention)
+ * - Time saved (through automation)
+ * - Waste prevented (environmental + cost)
+ *
+ * + Quick actions to get work done fast
+ * + Only urgent alerts (not information overload)
  */
+
+export const dynamic = 'force-dynamic';
+
 export default async function TodayPage() {
   const { language, t } = await getServerTranslation();
 
   const { key: greetingKey, icon: GreetingIcon } = getTimeBasedGreeting();
-
   const locale = getLocaleFromLanguage(language);
   const formattedDate = formatDateForLocale(new Date(), locale);
 
-  const insights = await getDailyInsights(language);
-
-  const isAllGood =
-    insights.reorderAlerts.length === 0 &&
-    insights.expiringProducts.length === 0 &&
-    insights.menuStatus.allReady;
-
-  const hasReorderAlerts = insights.reorderAlerts.length > 0;
-  const hasExpiringProducts = insights.expiringProducts.length > 0;
-  const hasMenu = insights.menuStatus.totalActive > 0;
+  // Get impact metrics and alerts
+  const [impact, urgentAlerts] = await Promise.all([
+    getCurrentMonthImpact(),
+    getUrgentAlerts(),
+  ]);
 
   return (
-    <div className="w-full space-y-4 overflow-hidden sm:space-y-6">
+    <div className="w-full space-y-6 overflow-hidden">
+      {/* Header with greeting - full width */}
       <PageHeader
         title={<>{t(greetingKey)}, Nico!</>}
         subtitle={formattedDate}
         icon={GreetingIcon}
       />
 
-      {/* Daily Brief - Hero insight */}
-      <DailyBrief summary={insights.briefSummary} isAllGood={isAllGood} insights={insights} />
+      {/* Hero: Impact Chart - Progress bars with goals */}
+      <div className="rounded-lg border bg-card p-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold">Ton impact ce mois</h2>
+            <p className="text-sm text-muted-foreground">
+              Continue comme ça pour atteindre tes objectifs
+            </p>
+          </div>
+          <StreakBadge days={impact.streak} />
+        </div>
 
-      {/* Flexible Auto-Grid Layout - ALL cards in one grid that adapts to content */}
-      {/* 1 card = full width, 2 cards = 2 columns, 3+ cards = 3 columns on large screens */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-        {/* Priority 1: Reorder Alerts */}
-        {hasReorderAlerts && <ReorderAlerts alerts={insights.reorderAlerts} />}
-
-        {/* Priority 2: Waste Prevention */}
-        {hasExpiringProducts && <UseTodayCard products={insights.expiringProducts} />}
-
-        {/* Menu Readiness - Show if menu exists */}
-        {hasMenu && <MenuStatusCard menuStatus={insights.menuStatus} />}
-
-        {/* Quick Sales - Always show for recording sales */}
-        <QuickSales />
+        <ImpactChart
+          moneySaved={impact.moneySaved}
+          timeSaved={impact.timeSaved}
+          wastePrevented={impact.wastePrevented}
+          period="ce mois"
+          billCount={impact.billCount}
+          dlcCount={impact.dlcCount}
+          moneyPotential={impact.moneyPotential}
+          timePotential={impact.timePotential}
+          wastePotential={impact.wastePotential}
+        />
       </div>
 
-      {/* When everything is good and there's nothing to show */}
-      {isAllGood && (
-        <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-lg mb-4">
-            <span className="text-3xl">✨</span>
+      {/* Urgent Alerts - Only show if there's something critical */}
+      {urgentAlerts.length > 0 && <UrgentAlerts alerts={urgentAlerts} />}
+
+      {/* Quick Actions - Fast access to common tasks */}
+      <QuickActions />
+
+      {/* Motivational message when everything is good */}
+      {urgentAlerts.length === 0 && (
+        <div className="rounded-lg border bg-card p-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
+            <span className="text-2xl">✨</span>
           </div>
-          <p className="text-lg font-medium text-muted-foreground">
-            {t('today.allClear') || 'All clear! Everything is running smoothly.'}
+          <h3 className="text-base font-semibold mb-1">
+            Tout roule, Chef !
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Aucune alerte urgente
           </p>
         </div>
       )}

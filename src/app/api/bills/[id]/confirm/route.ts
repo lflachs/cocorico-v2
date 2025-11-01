@@ -18,12 +18,13 @@ type ProductMapping = {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if bill already processed
     const existingBill = await db.bill.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { status: true },
     });
 
@@ -101,7 +102,7 @@ export async function POST(
 
     // Update bill with supplier, date, total amount, and mark as PROCESSED
     await db.bill.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         supplierId: supplierId,
         billDate: billDate ? new Date(billDate) : null,
@@ -111,7 +112,7 @@ export async function POST(
     });
 
     // Confirm bill and update stock
-    await confirmBill(params.id, processedProducts);
+    await confirmBill(id, processedProducts);
 
     return NextResponse.json({
       success: true,

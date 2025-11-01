@@ -15,6 +15,8 @@ type ExtractedLineItem = {
 
 type OcrResult = {
   supplierName: string;
+  supplierEmail?: string;
+  supplierPhone?: string;
   date: Date;
   totalAmount: number;
   items: ExtractedLineItem[];
@@ -62,6 +64,10 @@ export class OcrService {
       fields?.VendorName?.content ||
       'Unknown Supplier';
 
+    // Extract supplier contact info
+    const supplierEmail = fields?.MerchantEmail?.content || fields?.VendorEmail?.content;
+    const supplierPhone = fields?.MerchantPhoneNumber?.content || fields?.VendorPhoneNumber?.content;
+
     // Extract date
     let date = new Date();
     if (fields?.TransactionDate?.value) {
@@ -83,10 +89,38 @@ export class OcrService {
       for (const item of fields.Items.values) {
         const itemFields = item.properties;
 
-        const description = itemFields?.Description?.content || 'Unknown Item';
-        const quantity = itemFields?.Quantity?.value || 1;
-        const totalPrice = itemFields?.TotalPrice?.value || 0;
-        const unitPrice = quantity > 0 ? totalPrice / quantity : totalPrice;
+        let description = itemFields?.Description?.content || 'Unknown Item';
+        let quantity = itemFields?.Quantity?.value || 1;
+        let totalPriceValue = itemFields?.TotalPrice?.value || 0;
+
+        // Handle totalPrice as object with amount property
+        if (typeof totalPriceValue === 'object' && totalPriceValue !== null) {
+          totalPriceValue = (totalPriceValue as any).amount || 0;
+        }
+
+        // Parse description to extract quantity if it contains pattern like "3 x 28.00€"
+        // Description format: "Dish Name\n3 × 28.00€" or "Dish Name\n3 x 28.00€"
+        const qtyMatch = description.match(/^(.+?)\n(\d+)\s*[x×]\s*([\d.,]+)\s*€?/i);
+        if (qtyMatch) {
+          description = qtyMatch[1].trim(); // Extract clean dish name
+          quantity = parseInt(qtyMatch[2]) || 1; // Extract quantity
+          const unitPriceFromDesc = parseFloat(qtyMatch[3].replace(',', '.')) || 0;
+
+          // If we have unit price from description, use it
+          if (unitPriceFromDesc > 0) {
+            const unitPrice = unitPriceFromDesc;
+            items.push({
+              description,
+              quantity,
+              unit: 'pc',
+              unitPrice,
+              totalPrice: totalPriceValue,
+            });
+            continue;
+          }
+        }
+
+        const unitPrice = quantity > 0 ? totalPriceValue / quantity : totalPriceValue;
 
         // Try to extract unit from description or default to 'pc'
         let unit = 'pc';
@@ -104,12 +138,57 @@ export class OcrService {
           quantity,
           unit,
           unitPrice,
-          totalPrice,
+          totalPrice: totalPriceValue,
         });
       }
     }
 
-    // If no items were extracted, try to get them from individual line items
+    // If no items were extracted, try to parse from raw text
+    if (items.length === 0 && result.content) {
+      // Fallback: parse from text content
+      const lines = result.content.split('\n');
+
+      for (const line of lines) {
+        // Try to match pattern: "Item Name" "Qty x Price" "Total"
+        // Examples:
+        // - "Item Name    3 x 28.00€    84.00€"
+        // - "Item Name    2 x 26.00    52.00"
+        const match = line.match(/^(.+?)\s+(\d+)\s*[x×]\s*([\d,.]+)\s*€?\s*([\d,.]+)\s*€?$/i);
+
+        if (match) {
+          const [, description, qtyStr, unitPriceStr, totalPriceStr] = match;
+
+          const quantity = parseInt(qtyStr) || 1;
+          const unitPrice = parseFloat(unitPriceStr.replace(',', '.')) || 0;
+          const totalPrice = parseFloat(totalPriceStr.replace(',', '.')) || 0;
+
+          items.push({
+            description: description.trim(),
+            quantity,
+            unit: 'pc',
+            unitPrice,
+            totalPrice,
+          });
+        } else {
+          // Try simpler pattern: just "Item Name" and "Price"
+          const simpleMatch = line.match(/^(.+?)\s+([\d,.]+)\s*€$/i);
+          if (simpleMatch) {
+            const [, description, priceStr] = simpleMatch;
+            const totalPrice = parseFloat(priceStr.replace(',', '.')) || 0;
+
+            items.push({
+              description: description.trim(),
+              quantity: 1,
+              unit: 'pc',
+              unitPrice: totalPrice,
+              totalPrice,
+            });
+          }
+        }
+      }
+    }
+
+    // If still no items, try to get them from tables
     if (items.length === 0 && result.tables && result.tables.length > 0) {
       // Fallback: extract from tables
       const table = result.tables[0];
@@ -129,6 +208,8 @@ export class OcrService {
 
     return {
       supplierName,
+      supplierEmail,
+      supplierPhone,
       date,
       totalAmount: typeof totalAmount === 'number' ? totalAmount : 0,
       items,
@@ -159,6 +240,10 @@ export class OcrService {
       fields?.MerchantName?.content ||
       'Unknown Supplier';
 
+    // Extract vendor contact info
+    const supplierEmail = fields?.VendorEmail?.content || fields?.VendorAddress?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0];
+    const supplierPhone = fields?.VendorPhoneNumber?.content || fields?.VendorPhone?.content;
+
     // Extract date
     let date = new Date();
     if (fields?.InvoiceDate?.value) {
@@ -180,10 +265,31 @@ export class OcrService {
       for (const item of fields.Items.values) {
         const itemFields = item.properties;
 
-        const description = itemFields?.Description?.content || 'Unknown Item';
-        const quantity = itemFields?.Quantity?.value || 1;
-        const amount = itemFields?.Amount?.value || 0;
-        const unitPrice = itemFields?.UnitPrice?.value || (quantity > 0 ? amount / quantity : 0);
+        let description = itemFields?.Description?.content || 'Unknown Item';
+        let quantity = itemFields?.Quantity?.value || 1;
+        let amount = itemFields?.Amount?.value || 0;
+        let unitPriceValue = itemFields?.UnitPrice?.value || 0;
+
+        // Handle amount/price as object with amount property
+        if (typeof amount === 'object' && amount !== null) {
+          amount = (amount as any).amount || 0;
+        }
+        if (typeof unitPriceValue === 'object' && unitPriceValue !== null) {
+          unitPriceValue = (unitPriceValue as any).amount || 0;
+        }
+
+        // Parse description to extract quantity if it contains pattern like "3 x 28.00€"
+        const qtyMatch = description.match(/^(.+?)\n(\d+)\s*[x×]\s*([\d.,]+)\s*€?/i);
+        if (qtyMatch) {
+          description = qtyMatch[1].trim();
+          quantity = parseInt(qtyMatch[2]) || 1;
+          const parsedUnitPrice = parseFloat(qtyMatch[3].replace(',', '.')) || 0;
+          if (parsedUnitPrice > 0) {
+            unitPriceValue = parsedUnitPrice;
+          }
+        }
+
+        const unitPrice = unitPriceValue || (quantity > 0 ? amount / quantity : 0);
 
         // Extract unit
         let unit = 'pc';
@@ -208,6 +314,8 @@ export class OcrService {
 
     return {
       supplierName,
+      supplierEmail,
+      supplierPhone,
       date,
       totalAmount: typeof totalAmount === 'number' ? totalAmount : 0,
       items,

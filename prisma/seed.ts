@@ -128,7 +128,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Lait entier',
-        quantity: 50,
+        quantity: 12, // BELOW parLevel (30) -> CRITICAL
         unit: Unit.L,
         unitPrice: 1.2,
         trackable: true,
@@ -140,7 +140,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Crème fraîche 35%',
-        quantity: 20,
+        quantity: 6, // BELOW parLevel (15) -> CRITICAL
         unit: Unit.L,
         unitPrice: 4.5,
         trackable: true,
@@ -152,7 +152,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Beurre doux',
-        quantity: 15,
+        quantity: 8, // BELOW parLevel (10) -> LOW
         unit: Unit.KG,
         unitPrice: 8.5,
         trackable: true,
@@ -164,7 +164,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Œufs frais',
-        quantity: 300,
+        quantity: 85, // BELOW parLevel (200) -> CRITICAL
         unit: Unit.PC,
         unitPrice: 0.25,
         trackable: true,
@@ -216,7 +216,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Poulet fermier (entier)',
-        quantity: 30,
+        quantity: 8, // BELOW parLevel (20) -> CRITICAL
         unit: Unit.PC,
         unitPrice: 12.5,
         trackable: true,
@@ -228,7 +228,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Magret de canard',
-        quantity: 8,
+        quantity: 2, // BELOW parLevel (5) -> CRITICAL
         unit: Unit.PC,
         unitPrice: 15.0,
         trackable: true,
@@ -240,7 +240,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Filet de bœuf',
-        quantity: 12,
+        quantity: 3, // BELOW parLevel (8) -> CRITICAL
         unit: Unit.KG,
         unitPrice: 35.0,
         trackable: true,
@@ -289,7 +289,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Bar de ligne',
-        quantity: 8,
+        quantity: 3, // BELOW parLevel (6) -> CRITICAL
         unit: Unit.KG,
         unitPrice: 28.0,
         trackable: true,
@@ -301,7 +301,7 @@ async function main() {
     prisma.product.create({
       data: {
         name: 'Daurade royale',
-        quantity: 10,
+        quantity: 5, // BELOW parLevel (8) -> LOW
         unit: Unit.KG,
         unitPrice: 24.0,
         trackable: true,

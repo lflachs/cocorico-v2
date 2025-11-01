@@ -17,12 +17,12 @@ import {
   X,
   Euro,
   Plus,
-  MapPin,
   AlertTriangle,
   Filter,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Clock,
 } from 'lucide-react';
 import { type Product } from '@prisma/client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -30,13 +30,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/providers/LanguageProvider';
 import Link from 'next/link';
 import { CreateButton } from '@/components/CreateButton';
-import dynamic from 'next/dynamic';
-
-// Dynamically import ProducerSearch to avoid SSR issues with Leaflet
-const ProducerSearch = dynamic(
-  () => import('@/components/producers/ProducerSearch').then((mod) => ({ default: mod.ProducerSearch })),
-  { ssr: false, loading: () => <div className="p-8 text-center">Loading map...</div> }
-);
+import { InventorySyncFlow } from './InventorySyncFlow';
 
 /**
  * Comprehensive Inventory View Component
@@ -59,7 +53,7 @@ export function InventoryView({ initialProducts, menuIngredients }: InventoryVie
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = useState('sync');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(initialProducts);
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'critical'>(
@@ -76,6 +70,7 @@ export function InventoryView({ initialProducts, menuIngredients }: InventoryVie
   }>({ name: '', quantity: 0, unitPrice: null, parLevel: null });
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [syncFlowOpen, setSyncFlowOpen] = useState(false);
 
   // Function to update URL with filter state
   const updateFilterURL = (filter: 'all' | 'low' | 'critical') => {
@@ -381,6 +376,47 @@ export function InventoryView({ initialProducts, menuIngredients }: InventoryVie
     }, 0);
   };
 
+  // Calculate inventory confidence level based on how recently products were updated
+  const calculateConfidenceLevel = () => {
+    if (initialProducts.length === 0) return { level: 0, label: 'Aucune donnée', color: 'gray' };
+
+    const now = Date.now();
+    let totalScore = 0;
+
+    initialProducts.forEach((product) => {
+      const daysSinceUpdate = Math.floor((now - new Date(product.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+
+      // Scoring system: more recent = higher score
+      let score = 0;
+      if (daysSinceUpdate === 0) score = 100; // Today
+      else if (daysSinceUpdate === 1) score = 90; // Yesterday
+      else if (daysSinceUpdate <= 3) score = 75; // Last 3 days
+      else if (daysSinceUpdate <= 7) score = 50; // Last week
+      else if (daysSinceUpdate <= 14) score = 30; // Last 2 weeks
+      else if (daysSinceUpdate <= 30) score = 15; // Last month
+      else score = 0; // Over a month
+
+      totalScore += score;
+    });
+
+    const avgScore = totalScore / initialProducts.length;
+
+    // Determine confidence level
+    if (avgScore >= 80) {
+      return { level: avgScore, label: 'Très élevée', color: 'green', emoji: '🟢' };
+    } else if (avgScore >= 60) {
+      return { level: avgScore, label: 'Élevée', color: 'blue', emoji: '🔵' };
+    } else if (avgScore >= 40) {
+      return { level: avgScore, label: 'Moyenne', color: 'yellow', emoji: '🟡' };
+    } else if (avgScore >= 20) {
+      return { level: avgScore, label: 'Faible', color: 'orange', emoji: '🟠' };
+    } else {
+      return { level: avgScore, label: 'Très faible', color: 'red', emoji: '🔴' };
+    }
+  };
+
+  const confidence = calculateConfidenceLevel();
+
   const productsWithValue = initialProducts.filter((p) => p.unitPrice && p.unitPrice > 0);
   const avgValue =
     productsWithValue.length > 0 ? calculateStockValueFromProducts() / productsWithValue.length : 0;
@@ -419,17 +455,154 @@ Product: ${p.name}
 
   return (
     <>
+      <InventorySyncFlow
+        open={syncFlowOpen}
+        onOpenChange={setSyncFlowOpen}
+        products={initialProducts}
+        initialConfidence={confidence.level}
+      />
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full overflow-hidden">
         <TabsList className="grid w-full sm:max-w-md grid-cols-2 mb-6">
+          <TabsTrigger value="sync" className="gap-1 sm:gap-2 min-w-0">
+            <RefreshCw className="w-4 h-4 shrink-0" />
+            <span className="truncate text-xs sm:text-sm">Sync</span>
+          </TabsTrigger>
           <TabsTrigger value="inventory" className="gap-1 sm:gap-2 min-w-0">
             <Package className="w-4 h-4 shrink-0" />
-            <span className="truncate">Stock</span>
-          </TabsTrigger>
-          <TabsTrigger value="producers" className="gap-1 sm:gap-2 min-w-0">
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span className="truncate text-xs sm:text-sm">Trouver des producteurs</span>
+            <span className="truncate text-xs sm:text-sm">Stock</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="sync" className="space-y-4 overflow-hidden">
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <RefreshCw className="h-5 w-5 text-primary" />
+                Synchronisation rapide
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Confidence Indicator - Compact */}
+              <div className={`p-3 rounded-lg border ${
+                confidence.color === 'green' ? 'border-green-200 bg-green-50' :
+                confidence.color === 'blue' ? 'border-blue-200 bg-blue-50' :
+                confidence.color === 'yellow' ? 'border-yellow-200 bg-yellow-50' :
+                confidence.color === 'orange' ? 'border-orange-200 bg-orange-50' :
+                'border-red-200 bg-red-50'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{confidence.emoji}</span>
+                      <div>
+                        <h3 className={`font-semibold text-sm ${
+                          confidence.color === 'green' ? 'text-green-900' :
+                          confidence.color === 'blue' ? 'text-blue-900' :
+                          confidence.color === 'yellow' ? 'text-yellow-900' :
+                          confidence.color === 'orange' ? 'text-orange-900' :
+                          'text-red-900'
+                        }`}>
+                          Confiance: {confidence.label}
+                        </h3>
+                        <p className={`text-xs ${
+                          confidence.color === 'green' ? 'text-green-700' :
+                          confidence.color === 'blue' ? 'text-blue-700' :
+                          confidence.color === 'yellow' ? 'text-yellow-700' :
+                          confidence.color === 'orange' ? 'text-orange-700' :
+                          'text-red-700'
+                        }`}>
+                          {Math.round(confidence.level)}% de fiabilité
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compact Progress bar */}
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      confidence.color === 'green' ? 'bg-green-600' :
+                      confidence.color === 'blue' ? 'bg-blue-600' :
+                      confidence.color === 'yellow' ? 'bg-yellow-600' :
+                      confidence.color === 'orange' ? 'bg-orange-600' :
+                      'bg-red-600'
+                    }`}
+                    style={{ width: `${confidence.level}%` }}
+                  />
+                </div>
+
+                {confidence.level < 60 && (
+                  <p className={`text-xs mt-2 font-medium ${
+                    confidence.color === 'orange' ? 'text-orange-900' :
+                    'text-red-900'
+                  }`}>
+                    ⚠️ Synchronisez pour améliorer la fiabilité
+                  </p>
+                )}
+              </div>
+
+              {/* Compact stats grid */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-3 rounded-lg border bg-card text-center">
+                  <div className="text-xl font-bold">{initialProducts.length}</div>
+                  <div className="text-xs text-muted-foreground">produits</div>
+                </div>
+                <div className="p-3 rounded-lg border bg-card text-center">
+                  <div className="text-xl font-bold text-orange-600">{lowStockCount}</div>
+                  <div className="text-xs text-muted-foreground">stocks bas</div>
+                </div>
+                <div className="p-3 rounded-lg border bg-card text-center">
+                  <div className="text-xl font-bold text-red-600">{criticalStockCount}</div>
+                  <div className="text-xs text-muted-foreground">critiques</div>
+                </div>
+              </div>
+
+              {/* Compact How it works */}
+              <div className="p-3 rounded-lg border bg-muted/30">
+                <h3 className="font-semibold text-sm mb-2">Comment ça marche ?</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex gap-2 items-start">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
+                    <p className="text-xs">Parcourez les produits (les plus anciens en premier)</p>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
+                    <p className="text-xs">Confirmez ou ajustez chaque quantité</p>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
+                    <p className="text-xs">Arrêtez quand vous voulez - plus vous faites, mieux c'est !</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compact time estimate */}
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-blue-50 border-blue-200">
+                <Clock className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900">
+                    ~{Math.ceil((initialProducts.length * 30) / 60)} min
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    ~30 sec/produit
+                  </p>
+                </div>
+              </div>
+
+              {/* Start button */}
+              <Button
+                onClick={() => setSyncFlowOpen(true)}
+                size="lg"
+                className="w-full h-14 text-base font-semibold"
+              >
+                <RefreshCw className="mr-2 h-5 w-5" />
+                Commencer la synchronisation
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="inventory" className="space-y-6 overflow-hidden">
           {/* Stock Valuation Summary */}
@@ -1030,10 +1203,6 @@ Product: ${p.name}
             )}
           </CardContent>
         </Card>
-        </TabsContent>
-
-        <TabsContent value="producers">
-          <ProducerSearch />
         </TabsContent>
       </Tabs>
     </>

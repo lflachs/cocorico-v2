@@ -10,6 +10,19 @@ export type Language = 'en' | 'fr';
 // Define English translations as the base
 const englishTranslations = {
   'app.title': 'Cocorico Stock Manager',
+  // Navigation sections
+  'nav.section.workflow': 'Daily Workflow',
+  'nav.section.management': 'Management',
+  'nav.section.analytics': 'Analytics',
+  // New workflow-based navigation
+  'nav.home': 'Home',
+  'nav.reception': 'Reception',
+  'nav.prep': 'Prep',
+  'nav.sales': 'Sales',
+  'nav.foodCost': 'Food Cost',
+  'nav.orders': 'Orders',
+  'nav.insights': 'Insights',
+  // Legacy navigation (kept for compatibility)
   'nav.today': 'Today',
   'nav.menu': 'Menu & Recipes',
   'nav.inventory': 'Inventory',
@@ -665,6 +678,19 @@ const englishTranslations = {
 // French translations must have all English keys
 const frenchTranslations: Record<keyof typeof englishTranslations, string> = {
   'app.title': 'Cocorico Gestion de Stock',
+  // Navigation sections
+  'nav.section.workflow': 'Workflow Quotidien',
+  'nav.section.management': 'Gestion',
+  'nav.section.analytics': 'Analytique',
+  // New workflow-based navigation
+  'nav.home': 'Accueil',
+  'nav.reception': 'Réception',
+  'nav.prep': 'Préparation',
+  'nav.sales': 'Ventes',
+  'nav.foodCost': 'Food Cost',
+  'nav.orders': 'Commandes',
+  'nav.insights': 'Insights',
+  // Legacy navigation
   'nav.today': "Aujourd'hui",
   'nav.menu': 'Menu & Recettes',
   'nav.inventory': 'Inventaire',

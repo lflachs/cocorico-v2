@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
         billId: bill.id,
         filename: file.name,
         supplier: ocrResult.supplierName,
+        supplierEmail: ocrResult.supplierEmail,
+        supplierPhone: ocrResult.supplierPhone,
         date: ocrResult.date,
         totalAmount: ocrResult.totalAmount,
         items: ocrResult.items.map((item, index) => ({

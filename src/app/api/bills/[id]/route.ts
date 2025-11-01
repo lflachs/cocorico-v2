@@ -9,10 +9,11 @@ import { db } from '@/lib/db/client';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const bill = await getBillById(params.id);
+    const { id } = await params;
+    const bill = await getBillById(id);
 
     if (!bill) {
       return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
@@ -62,12 +63,13 @@ export async function GET(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Delete the bill (cascade will delete related records)
     await db.bill.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

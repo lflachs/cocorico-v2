@@ -112,18 +112,44 @@ export async function notifyExpiringItems(items: {
   });
 }
 
+// Singleton interval ID to prevent multiple intervals
+let notificationIntervalId: ReturnType<typeof setInterval> | null = null;
+
 /**
  * Schedule daily notification check
  * Should be called on app initialization
+ * Returns a cleanup function to stop the scheduler
  */
-export function scheduleDailyNotificationCheck(): void {
+export function scheduleDailyNotificationCheck(): () => void {
+  // If already scheduled, don't create another interval
+  if (notificationIntervalId !== null) {
+    console.log('Notification scheduler already running');
+    return () => stopNotificationScheduler();
+  }
+
+  console.log('Starting notification scheduler');
+
   // Check immediately
   checkAndNotifyExpiringItems();
 
   // Then check every hour
-  setInterval(() => {
+  notificationIntervalId = setInterval(() => {
     checkAndNotifyExpiringItems();
   }, 60 * 60 * 1000); // 1 hour
+
+  // Return cleanup function
+  return () => stopNotificationScheduler();
+}
+
+/**
+ * Stop the notification scheduler
+ */
+export function stopNotificationScheduler(): void {
+  if (notificationIntervalId !== null) {
+    console.log('Stopping notification scheduler');
+    clearInterval(notificationIntervalId);
+    notificationIntervalId = null;
+  }
 }
 
 /**
