@@ -178,8 +178,8 @@ export async function getSalesData(period: 'today' | 'week' | 'month' = 'today')
     },
   });
 
-  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalPrice || 0), 0);
-  const totalQuantity = sales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
+  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.dish.sellingPrice * sale.quantitySold), 0);
+  const totalQuantity = sales.reduce((sum, sale) => sum + sale.quantitySold, 0);
 
   // Group by dish
   const dishSales = new Map<string, { name: string; quantity: number; revenue: number }>();
@@ -189,8 +189,8 @@ export async function getSalesData(period: 'today' | 'week' | 'month' = 'today')
       quantity: 0,
       revenue: 0,
     };
-    existing.quantity += sale.quantity || 0;
-    existing.revenue += sale.totalPrice || 0;
+    existing.quantity += sale.quantitySold;
+    existing.revenue += sale.dish.sellingPrice * sale.quantitySold;
     dishSales.set(sale.dishId, existing);
   });
 

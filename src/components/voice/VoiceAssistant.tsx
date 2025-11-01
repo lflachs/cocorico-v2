@@ -334,8 +334,8 @@ export function VoiceAssistant({
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       const SILENCE_THRESHOLD = 25; // Adjust sensitivity (higher = less sensitive to background noise)
-      const SILENCE_DURATION = 2000; // Stop after 2 seconds of silence
-      const MIN_RECORDING_TIME = 500; // Minimum 0.5 seconds before allowing auto-stop
+      const SILENCE_DURATION = 2500; // Stop after 2.5 seconds of silence (balanced for natural pauses)
+      const MIN_RECORDING_TIME = 1000; // Minimum 1 second before allowing auto-stop
 
       let hasDetectedVoice = false;
       const startTime = Date.now();
@@ -386,6 +386,9 @@ export function VoiceAssistant({
       };
 
       mediaRecorder.onstop = async () => {
+        // CRITICAL: Reset recording flag immediately when recording stops
+        isRecordingRef.current = false;
+
         // Use the actual MIME type from the MediaRecorder
         const actualMimeType = mediaRecorder.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
@@ -1743,9 +1746,10 @@ Tone: Professional, efficient, respectful of hierarchy. Like a good sous-chef br
               const { message } = await conversationRes.json();
               console.log("[Consultation] Initial greeting:", message);
 
-              // Update conversation history
+              // DON'T add the initial prompt to conversation history
+              // It's a one-time instruction to generate the greeting
+              // Start the conversation fresh from the assistant's greeting
               setConversationHistory([
-                { role: 'user', content: initialPrompt },
                 { role: 'assistant', content: message }
               ]);
 

@@ -72,11 +72,12 @@ export async function POST(request: NextRequest) {
     // Generate speech with OpenAI TTS
     // Available voices: alloy, echo, fable, onyx, nova, shimmer
     // Note: OpenAI TTS automatically handles multiple languages
+    // Using tts-1-hd for better quality, but you can use tts-1 for faster response
     const mp3 = await openai.audio.speech.create({
-      model: "tts-1",
+      model: "tts-1", // tts-1 is faster (~50% faster than tts-1-hd), use tts-1-hd for higher quality
       voice: voice as "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer",
       input: preparedText,
-      speed: 1.0,
+      speed: 1.1, // Slightly faster speech (1.0-1.25 range) - saves ~10% time
     });
 
     // Convert to buffer

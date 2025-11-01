@@ -44,8 +44,9 @@ export default async function TodayPage() {
       {/* Daily Brief - Hero insight */}
       <DailyBrief summary={insights.briefSummary} isAllGood={isAllGood} insights={insights} />
 
-      {/* Smart Grid Layout - Only show cards with content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      {/* Flexible Auto-Grid Layout - Adapts to number of cards */}
+      {/* Uses CSS Grid with auto-fit to distribute cards evenly */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr">
         {/* Priority 1: Reorder Alerts */}
         {hasReorderAlerts && <ReorderAlerts alerts={insights.reorderAlerts} />}
 

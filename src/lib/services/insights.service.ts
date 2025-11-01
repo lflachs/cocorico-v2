@@ -69,6 +69,7 @@ export interface DailyInsights {
     readyCount: number;
     totalActive: number;
     items: MenuStatusItem[];
+    dishCapacities?: DishCapacity[];
   };
   stats: {
     totalReorderNeeded: number;
@@ -498,12 +499,12 @@ function generateMorningBrief(insights: Omit<DailyInsights, 'briefSummary'>, lan
           // URGENT: has ingredients expiring today/tomorrow
           const ingredients = dish.criticalIngredients.join(' + ');
           const count = dish.criticalIngredients.length > 1 ? ` — ${dish.criticalIngredients.length} produits` : '';
-          brief += `   ${actionNumber}️⃣ Mettre en avant : ${dish.dishName} (utilise ${ingredients}${count})\n`;
+          brief += `   ${actionNumber}️⃣ Suggérer en priorité : ${dish.dishName} (utilise ${ingredients}${count})\n`;
         } else {
           // SOON: only has ingredients expiring in 2-3 days
           const ingredients = dish.soonIngredients.join(' + ');
           const count = dish.soonIngredients.length > 1 ? ` — ${dish.soonIngredients.length} produits` : '';
-          brief += `   ${actionNumber}️⃣ Planifier : ${dish.dishName} (utilise ${ingredients}${count})\n`;
+          brief += `   ${actionNumber}️⃣ Proposer comme suggestion : ${dish.dishName} (utilise ${ingredients}${count})\n`;
         }
         actionNumber++;
       }
@@ -662,12 +663,12 @@ function generateMorningBrief(insights: Omit<DailyInsights, 'briefSummary'>, lan
         // URGENT: has ingredients expiring today/tomorrow
         const ingredients = dish.criticalIngredients.join(' + ');
         const count = dish.criticalIngredients.length > 1 ? ` — ${dish.criticalIngredients.length} products` : '';
-        brief += `   ${actionNumber}️⃣ Feature: ${dish.dishName} (uses ${ingredients}${count})\n`;
+        brief += `   ${actionNumber}️⃣ Priority suggestion: ${dish.dishName} (uses ${ingredients}${count})\n`;
       } else {
         // SOON: only has ingredients expiring in 2-3 days
         const ingredients = dish.soonIngredients.join(' + ');
         const count = dish.soonIngredients.length > 1 ? ` — ${dish.soonIngredients.length} products` : '';
-        brief += `   ${actionNumber}️⃣ Plan ahead: ${dish.dishName} (uses ${ingredients}${count})\n`;
+        brief += `   ${actionNumber}️⃣ Suggest as special: ${dish.dishName} (uses ${ingredients}${count})\n`;
       }
       actionNumber++;
     }
@@ -689,9 +690,10 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
   const { stats, menuStatus, reorderAlerts, expiringProducts } = insights;
 
   // Get evening-specific data
-  const [salesSummary, stockFreshness] = await Promise.all([
+  const [salesSummary, stockFreshness, wasteData] = await Promise.all([
     getTodaySalesSummary(),
     getStockFreshnessCheck(),
+    getTodayWaste(),
   ]);
 
   // Categorize expiring products by urgency
@@ -713,10 +715,11 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
     // Part 1: Evening greeting
     let brief = `Bonsoir Chef ! 🌙 Fin de journée, faisons le point.\n\n`;
 
-    // Part 2: Sales recap
+    // Part 2: Sales recap with margin
     if (salesSummary.hasSales) {
+      const marginColor = salesSummary.marginPercent >= 60 ? '💚' : salesSummary.marginPercent >= 40 ? '💛' : '🔴';
       brief += `📊 **Bilan du service** :\n`;
-      brief += `   ${salesSummary.totalDishes} plat${salesSummary.totalDishes > 1 ? 's' : ''} vendus — €${Math.round(salesSummary.totalRevenue)} de chiffre\n`;
+      brief += `   ${salesSummary.totalDishes} plat${salesSummary.totalDishes > 1 ? 's' : ''} vendus — €${Math.round(salesSummary.totalRevenue)} CA | ${marginColor} €${Math.round(salesSummary.totalMargin)} marge (${Math.round(salesSummary.marginPercent)}%)\n`;
 
       if (salesSummary.topDishes.length > 0) {
         brief += `   **Top ventes** :\n`;
@@ -728,6 +731,28 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
     } else {
       brief += `📊 **Bilan du service** : ⚠️ Aucune vente enregistrée aujourd'hui.\n`;
       brief += `   → Pensez à enregistrer vos ventes pour un suivi précis !\n\n`;
+    }
+
+    // Part 2.5: Waste tracking
+    if (wasteData.wasteCount === 0) {
+      brief += `♻️ **Gaspillage** : ✨ Zéro perte aujourd'hui ! Belle gestion des DLC. 👏\n\n`;
+    } else {
+      brief += `♻️ **Gaspillage** : ${wasteData.wasteCount} produit${wasteData.wasteCount > 1 ? 's' : ''} expiré${wasteData.wasteCount > 1 ? 's' : ''} aujourd'hui`;
+      if (wasteData.wasteValue > 0) {
+        brief += ` (€${Math.round(wasteData.wasteValue)} de perte)`;
+      }
+      brief += `\n`;
+      wasteData.wastedItems.slice(0, 3).forEach(item => {
+        brief += `   • ${item.productName} — ${item.quantity} ${item.unit}`;
+        if (item.value > 0) {
+          brief += ` (€${Math.round(item.value)})`;
+        }
+        brief += `\n`;
+      });
+      if (wasteData.wasteCount > 3) {
+        brief += `   • +${wasteData.wasteCount - 3} autre${wasteData.wasteCount - 3 > 1 ? 's' : ''}\n`;
+      }
+      brief += `\n`;
     }
 
     // Part 3: Stock freshness warning
@@ -858,7 +883,7 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
           .slice(0, 3);
 
         sortedIngredients.forEach(({ productName, dishes, isCritical }) => {
-          const action = isCritical ? 'Mettre en avant' : 'Planifier';
+          const action = isCritical ? 'Suggérer en priorité' : 'Proposer comme suggestion';
           if (dishes.length === 1) {
             brief += `   ${actionNum}️⃣ ${action} : ${dishes[0]} (utilise ${productName.toLowerCase()})\n`;
           } else if (dishes.length === 2) {
@@ -888,10 +913,11 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
   // English version
   let brief = `Good evening Chef! 🌙 End of day recap.\n\n`;
 
-  // Part 2: Sales recap
+  // Part 2: Sales recap with margin
   if (salesSummary.hasSales) {
+    const marginColor = salesSummary.marginPercent >= 60 ? '💚' : salesSummary.marginPercent >= 40 ? '💛' : '🔴';
     brief += `📊 **Service summary**:\n`;
-    brief += `   ${salesSummary.totalDishes} dish${salesSummary.totalDishes > 1 ? 'es' : ''} sold — €${Math.round(salesSummary.totalRevenue)} revenue\n`;
+    brief += `   ${salesSummary.totalDishes} dish${salesSummary.totalDishes > 1 ? 'es' : ''} sold — €${Math.round(salesSummary.totalRevenue)} revenue | ${marginColor} €${Math.round(salesSummary.totalMargin)} margin (${Math.round(salesSummary.marginPercent)}%)\n`;
 
     if (salesSummary.topDishes.length > 0) {
       brief += `   **Top sellers**:\n`;
@@ -903,6 +929,28 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
   } else {
     brief += `📊 **Service summary**: ⚠️ No sales recorded today.\n`;
     brief += `   → Remember to record your sales for accurate tracking!\n\n`;
+  }
+
+  // Part 2.5: Waste tracking
+  if (wasteData.wasteCount === 0) {
+    brief += `♻️ **Waste** : ✨ Zero waste today! Great DLC management. 👏\n\n`;
+  } else {
+    brief += `♻️ **Waste** : ${wasteData.wasteCount} product${wasteData.wasteCount > 1 ? 's' : ''} expired today`;
+    if (wasteData.wasteValue > 0) {
+      brief += ` (€${Math.round(wasteData.wasteValue)} loss)`;
+    }
+    brief += `\n`;
+    wasteData.wastedItems.slice(0, 3).forEach(item => {
+      brief += `   • ${item.productName} — ${item.quantity} ${item.unit}`;
+      if (item.value > 0) {
+        brief += ` (€${Math.round(item.value)})`;
+      }
+      brief += `\n`;
+    });
+    if (wasteData.wasteCount > 3) {
+      brief += `   • +${wasteData.wasteCount - 3} more\n`;
+    }
+    brief += `\n`;
   }
 
   // Part 3: Stock freshness warning
@@ -1033,7 +1081,7 @@ async function generateEveningBrief(insights: Omit<DailyInsights, 'briefSummary'
         .slice(0, 3);
 
       sortedDishes.forEach(([dishName, data]) => {
-        const action = data.isCritical ? 'Feature' : 'Plan ahead';
+        const action = data.isCritical ? 'Priority suggestion' : 'Suggest as special';
         if (data.ingredients.length > 1) {
           brief += `   ${actionNum}️⃣ ${action}: ${dishName} (uses ${data.ingredients.join(' + ')} — ${data.ingredients.length} products)\n`;
         } else {
@@ -1069,24 +1117,52 @@ async function getTodaySalesSummary() {
       },
     },
     include: {
-      dish: true,
+      dish: {
+        include: {
+          recipeIngredients: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  const totalRevenue = sales.reduce((sum, sale) => {
-    const dishPrice = sale.dish.sellingPrice || 0;
-    return sum + (dishPrice * sale.quantitySold);
-  }, 0);
-  const totalDishes = sales.reduce((sum, sale) => sum + sale.quantitySold, 0);
+  let totalRevenue = 0;
+  let totalCost = 0;
 
   // Top 3 dishes by quantity
-  const dishSales = new Map<string, { name: string; quantity: number; revenue: number }>();
+  const dishSales = new Map<string, { name: string; quantity: number; revenue: number; cost: number }>();
+
   sales.forEach(sale => {
-    const existing = dishSales.get(sale.dishId) || { name: sale.dish.name, quantity: 0, revenue: 0 };
+    const dishPrice = sale.dish.sellingPrice || 0;
+    const revenue = dishPrice * sale.quantitySold;
+
+    // Calculate cost of goods sold (COGS) for this sale
+    const dishCost = sale.dish.recipeIngredients.reduce((cost, ingredient) => {
+      const unitPrice = ingredient.product.unitPrice || 0;
+      return cost + (unitPrice * ingredient.quantityRequired * sale.quantitySold);
+    }, 0);
+
+    totalRevenue += revenue;
+    totalCost += dishCost;
+
+    const existing = dishSales.get(sale.dishId) || {
+      name: sale.dish.name,
+      quantity: 0,
+      revenue: 0,
+      cost: 0
+    };
     existing.quantity += sale.quantitySold;
-    existing.revenue += (sale.dish.sellingPrice || 0) * sale.quantitySold;
+    existing.revenue += revenue;
+    existing.cost += dishCost;
     dishSales.set(sale.dishId, existing);
   });
+
+  const totalDishes = sales.reduce((sum, sale) => sum + sale.quantitySold, 0);
+  const totalMargin = totalRevenue - totalCost;
+  const marginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
   const topDishes = Array.from(dishSales.values())
     .sort((a, b) => b.quantity - a.quantity)
@@ -1094,9 +1170,53 @@ async function getTodaySalesSummary() {
 
   return {
     totalRevenue: totalRevenue || 0,
+    totalCost: totalCost || 0,
+    totalMargin: totalMargin || 0,
+    marginPercent: marginPercent || 0,
     totalDishes: totalDishes || 0,
     topDishes,
     hasSales: sales.length > 0 && totalDishes > 0,
+  };
+}
+
+/**
+ * Get today's waste (products that expired)
+ */
+async function getTodayWaste() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Get all DLCs that expired today
+  const expiredDlcs = await db.dLC.findMany({
+    where: {
+      expirationDate: {
+        gte: today,
+        lt: tomorrow,
+      },
+    },
+    include: {
+      product: true,
+    },
+  });
+
+  const wasteValue = expiredDlcs.reduce((sum, dlc) => {
+    const unitPrice = dlc.product.unitPrice || 0;
+    return sum + (unitPrice * dlc.quantity);
+  }, 0);
+
+  const wasteCount = expiredDlcs.length;
+
+  return {
+    wasteValue,
+    wasteCount,
+    wastedItems: expiredDlcs.map(dlc => ({
+      productName: dlc.product.name,
+      quantity: dlc.quantity,
+      unit: dlc.unit,
+      value: (dlc.product.unitPrice || 0) * dlc.quantity,
+    })),
   };
 }
 

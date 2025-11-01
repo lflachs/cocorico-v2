@@ -251,6 +251,18 @@ async function main() {
     }),
     prisma.product.create({
       data: {
+        name: 'Onglet de bœuf',
+        quantity: 10,
+        unit: Unit.KG,
+        unitPrice: 28.0,
+        trackable: true,
+        parLevel: 6,
+        category: 'Viandes',
+        isComposite: false,
+      },
+    }),
+    prisma.product.create({
+      data: {
         name: 'Quasi de veau',
         quantity: 6,
         unit: Unit.KG,
@@ -496,7 +508,7 @@ async function main() {
       recipeIngredients: {
         create: [
           {
-            productId: productMap['Saumon norvégien'].id, // Mix of seafood
+            productId: productMap['Daurade royale'].id, // Mix of seafood (using daurade as placeholder for mixed fish)
             quantityRequired: 0.12,
             unit: 'KG',
           },
@@ -524,7 +536,7 @@ async function main() {
       recipeIngredients: {
         create: [
           {
-            productId: productMap['Filet de bœuf'].id, // Using beef as placeholder for veal
+            productId: productMap['Quasi de veau'].id,
             quantityRequired: 0.12,
             unit: 'KG',
           },
@@ -756,7 +768,7 @@ async function main() {
       recipeIngredients: {
         create: [
           {
-            productId: productMap['Filet de bœuf'].id,
+            productId: productMap['Onglet de bœuf'].id,
             quantityRequired: 0.25,
             unit: 'KG',
           },
@@ -812,7 +824,7 @@ async function main() {
       recipeIngredients: {
         create: [
           {
-            productId: productMap['Filet de bœuf'].id, // Placeholder for veal
+            productId: productMap['Quasi de veau'].id,
             quantityRequired: 0.28,
             unit: 'KG',
           },
@@ -1322,13 +1334,20 @@ async function main() {
   // ============================================================================
   console.log('📄 Creating bills and stock movements...');
 
+  // Helper function to create date N days ago
+  const getDaysAgo = (days: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    return date;
+  };
+
   const bill1 = await prisma.bill.create({
     data: {
       filename: 'facture_metro_20250115.pdf',
       supplier: {
         connect: { id: metro.id }
       },
-      billDate: new Date('2025-01-15'),
+      billDate: getDaysAgo(8),
       totalAmount: 1245.80,
       status: 'PROCESSED',
       products: {
@@ -1390,7 +1409,7 @@ async function main() {
       supplier: {
         connect: { id: rungis.id }
       },
-      billDate: new Date('2025-01-16'),
+      billDate: getDaysAgo(7),
       totalAmount: 685.50,
       status: 'PROCESSED',
       products: {
@@ -1438,7 +1457,7 @@ async function main() {
       supplier: {
         connect: { id: lactalis.id }
       },
-      billDate: new Date('2025-01-17'),
+      billDate: getDaysAgo(5),
       totalAmount: 342.00,
       status: 'PROCESSED',
       products: {
@@ -1500,7 +1519,7 @@ async function main() {
       supplier: {
         connect: { id: legumes.id }
       },
-      billDate: new Date('2025-01-18'),
+      billDate: getDaysAgo(3),
       totalAmount: 528.50,
       status: 'PROCESSED',
       products: {
@@ -1576,7 +1595,7 @@ async function main() {
       supplier: {
         connect: { id: epicerie.id }
       },
-      billDate: new Date('2025-01-19'),
+      billDate: getDaysAgo(1),
       totalAmount: 195.50,
       status: 'PROCESSED',
       products: {
@@ -1621,351 +1640,161 @@ async function main() {
   console.log('✅ Created 5 bills with stock movements\n');
 
   // ============================================================================
+  // ADDITIONAL STOCK MOVEMENTS (Daily operations in last 10 days)
+  // ============================================================================
+  console.log('📊 Creating additional stock movements...');
+
+  // Simulate daily stock usage and adjustments
+  const additionalMovements = [];
+
+  for (let daysAgo = 0; daysAgo < 10; daysAgo++) {
+    const movementDate = getDaysAgo(daysAgo);
+    const userId = daysAgo % 2 === 0 ? admin.id : user.id;
+
+    // Daily usage patterns
+    additionalMovements.push(
+      // Meat usage
+      {
+        productId: productMap['Onglet de bœuf'].id,
+        movementType: MovementType.OUT,
+        quantity: 2.5 + Math.random() * 2,
+        balanceAfter: productMap['Onglet de bœuf'].quantity - (2.5 + Math.random() * 2),
+        reason: 'Utilisation cuisine - service du jour',
+        userId,
+        createdAt: movementDate,
+      },
+      {
+        productId: productMap['Poulet fermier (entier)'].id,
+        movementType: MovementType.OUT,
+        quantity: 3 + Math.floor(Math.random() * 3),
+        balanceAfter: productMap['Poulet fermier (entier)'].quantity - (3 + Math.floor(Math.random() * 3)),
+        reason: 'Utilisation cuisine - service du jour',
+        userId,
+        createdAt: movementDate,
+      },
+      // Seafood usage
+      {
+        productId: productMap['Saumon norvégien'].id,
+        movementType: MovementType.OUT,
+        quantity: 1.5 + Math.random() * 1.5,
+        balanceAfter: productMap['Saumon norvégien'].quantity - (1.5 + Math.random() * 1.5),
+        reason: 'Utilisation cuisine - service du jour',
+        userId,
+        createdAt: movementDate,
+      },
+      {
+        productId: productMap['Bar de ligne'].id,
+        movementType: MovementType.OUT,
+        quantity: 1 + Math.random() * 1,
+        balanceAfter: productMap['Bar de ligne'].quantity - (1 + Math.random() * 1),
+        reason: 'Utilisation cuisine - service du jour',
+        userId,
+        createdAt: movementDate,
+      },
+      // Vegetables usage
+      {
+        productId: productMap['Tomates'].id,
+        movementType: MovementType.OUT,
+        quantity: 2 + Math.random() * 2,
+        balanceAfter: productMap['Tomates'].quantity - (2 + Math.random() * 2),
+        reason: 'Utilisation cuisine - service du jour',
+        userId,
+        createdAt: movementDate,
+      },
+      {
+        productId: productMap['Pommes de terre'].id,
+        movementType: MovementType.OUT,
+        quantity: 5 + Math.random() * 5,
+        balanceAfter: productMap['Pommes de terre'].quantity - (5 + Math.random() * 5),
+        reason: 'Utilisation cuisine - service du jour',
+        userId,
+        createdAt: movementDate,
+      }
+    );
+  }
+
+  await prisma.stockMovement.createMany({
+    data: additionalMovements,
+  });
+
+  console.log(`✅ Created ${additionalMovements.length} additional stock movements (last 10 days)\n`);
+
+  // ============================================================================
   // SALES
   // ============================================================================
   console.log('💰 Creating sales records...');
 
   const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const threeDaysAgo = new Date(today);
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  const fourDaysAgo = new Date(today);
-  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-  const fiveDaysAgo = new Date(today);
-  fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-  const sixDaysAgo = new Date(today);
-  sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
-  const oneWeekAgo = new Date(today);
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  // Generate comprehensive sales data for 21 days
+  const salesData: Array<{
+    dishId: string;
+    quantitySold: number;
+    saleDate: Date;
+    userId: string;
+    notes?: string;
+  }> = [];
+
+  // Define realistic sales patterns for each dish
+  const dishSalesPatterns = [
+    // Popular dishes (higher volume)
+    { dish: ongletBoeuf, min: 10, max: 18, frequency: 0.9 },
+    { dish: filetDaurade, min: 8, max: 14, frequency: 0.85 },
+    { dish: gambas, min: 7, max: 13, frequency: 0.8 },
+    { dish: poularde, min: 9, max: 15, frequency: 0.85 },
+    { dish: laMer, min: 10, max: 16, frequency: 0.9 },
+    { dish: chocolatXoco, min: 12, max: 18, frequency: 0.95 },
+    { dish: milleFeuille, min: 10, max: 16, frequency: 0.9 },
+
+    // Medium popularity dishes
+    { dish: vegetal, min: 6, max: 12, frequency: 0.75 },
+    { dish: tarteVegetarienne, min: 6, max: 11, frequency: 0.75 },
+    { dish: carpaccioVeau, min: 5, max: 10, frequency: 0.7 },
+    { dish: cevicheBar, min: 5, max: 11, frequency: 0.75 },
+    { dish: quasiVeau, min: 5, max: 9, frequency: 0.7 },
+    { dish: epauleAgneau, min: 6, max: 11, frequency: 0.75 },
+    { dish: primeursFrages, min: 8, max: 13, frequency: 0.8 },
+    { dish: madeleine, min: 7, max: 12, frequency: 0.8 },
+    { dish: rhubarbe, min: 6, max: 11, frequency: 0.75 },
+
+    // Premium/specialty dishes (lower frequency)
+    { dish: foieGras, min: 4, max: 9, frequency: 0.65 },
+    { dish: escargots, min: 5, max: 10, frequency: 0.7 },
+    { dish: coteBoeuf, min: 2, max: 5, frequency: 0.5 }, // For 2 people
+    { dish: gourmand, min: 6, max: 10, frequency: 0.7 },
+    { dish: fromages, min: 4, max: 8, frequency: 0.6 },
+  ];
+
+  // Generate sales for the last 21 days
+  for (let daysAgo = 0; daysAgo < 21; daysAgo++) {
+    const saleDate = getDaysAgo(daysAgo);
+    const isWeekend = saleDate.getDay() === 0 || saleDate.getDay() === 6;
+    const userId = daysAgo % 2 === 0 ? admin.id : user.id;
+
+    dishSalesPatterns.forEach(({ dish, min, max, frequency }) => {
+      // Randomly determine if this dish is sold on this day based on frequency
+      if (Math.random() < frequency) {
+        // Weekend gets 20% boost in sales
+        const volumeMultiplier = isWeekend ? 1.2 : 1.0;
+        const baseQuantity = Math.floor(Math.random() * (max - min + 1)) + min;
+        const quantitySold = Math.round(baseQuantity * volumeMultiplier);
+
+        salesData.push({
+          dishId: dish.id,
+          quantitySold,
+          saleDate,
+          userId,
+          notes: isWeekend && quantitySold > max ? 'Weekend - forte affluence' : undefined,
+        });
+      }
+    });
+  }
 
   await prisma.sale.createMany({
-    data: [
-      // Today
-      {
-        dishId: ongletBoeuf.id,
-        quantitySold: 12,
-        saleDate: today,
-        notes: 'Service midi + soir',
-        userId: admin.id,
-      },
-      {
-        dishId: gambas.id,
-        quantitySold: 8,
-        saleDate: today,
-        notes: 'Service soir',
-        userId: admin.id,
-      },
-      {
-        dishId: filetDaurade.id,
-        quantitySold: 10,
-        saleDate: today,
-        userId: admin.id,
-      },
-      {
-        dishId: laMer.id,
-        quantitySold: 14,
-        saleDate: today,
-        userId: admin.id,
-      },
-      {
-        dishId: tarteVegetarienne.id,
-        quantitySold: 9,
-        saleDate: today,
-        userId: admin.id,
-      },
-      {
-        dishId: chocolatXoco.id,
-        quantitySold: 15,
-        saleDate: today,
-        userId: admin.id,
-      },
-      {
-        dishId: madeleine.id,
-        quantitySold: 8,
-        saleDate: today,
-        userId: admin.id,
-      },
-      {
-        dishId: primeursFrages.id,
-        quantitySold: 11,
-        saleDate: today,
-        userId: admin.id,
-      },
-      // Yesterday
-      {
-        dishId: poularde.id,
-        quantitySold: 14,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      {
-        dishId: foieGras.id,
-        quantitySold: 11,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      {
-        dishId: vegetal.id,
-        quantitySold: 20,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      {
-        dishId: carpaccioVeau.id,
-        quantitySold: 7,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      {
-        dishId: cevicheBar.id,
-        quantitySold: 9,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      {
-        dishId: milleFeuille.id,
-        quantitySold: 12,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      {
-        dishId: gourmand.id,
-        quantitySold: 10,
-        saleDate: yesterday,
-        userId: user.id,
-      },
-      // Two days ago
-      {
-        dishId: quasiVeau.id,
-        quantitySold: 6,
-        saleDate: twoDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: escargots.id,
-        quantitySold: 9,
-        saleDate: twoDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: ongletBoeuf.id,
-        quantitySold: 15,
-        saleDate: twoDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: filetDaurade.id,
-        quantitySold: 8,
-        saleDate: twoDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: rhubarbe.id,
-        quantitySold: 11,
-        saleDate: twoDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: milleFeuille.id,
-        quantitySold: 13,
-        saleDate: twoDaysAgo,
-        userId: admin.id,
-      },
-      // Three days ago
-      {
-        dishId: coteBoeuf.id,
-        quantitySold: 3,
-        saleDate: threeDaysAgo,
-        notes: '3 tables de 2 personnes',
-        userId: user.id,
-      },
-      {
-        dishId: gambas.id,
-        quantitySold: 11,
-        saleDate: threeDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: foieGras.id,
-        quantitySold: 8,
-        saleDate: threeDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: chocolatXoco.id,
-        quantitySold: 14,
-        saleDate: threeDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: fromages.id,
-        quantitySold: 7,
-        saleDate: threeDaysAgo,
-        userId: user.id,
-      },
-      // Four days ago
-      {
-        dishId: poularde.id,
-        quantitySold: 12,
-        saleDate: fourDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: epauleAgneau.id,
-        quantitySold: 10,
-        saleDate: fourDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: laMer.id,
-        quantitySold: 13,
-        saleDate: fourDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: tarteVegetarienne.id,
-        quantitySold: 8,
-        saleDate: fourDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: gourmand.id,
-        quantitySold: 9,
-        saleDate: fourDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: primeursFrages.id,
-        quantitySold: 10,
-        saleDate: fourDaysAgo,
-        userId: admin.id,
-      },
-      // Five days ago
-      {
-        dishId: filetDaurade.id,
-        quantitySold: 9,
-        saleDate: fiveDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: ongletBoeuf.id,
-        quantitySold: 13,
-        saleDate: fiveDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: vegetal.id,
-        quantitySold: 18,
-        saleDate: fiveDaysAgo,
-        notes: 'Forte demande végétarien',
-        userId: user.id,
-      },
-      {
-        dishId: cevicheBar.id,
-        quantitySold: 7,
-        saleDate: fiveDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: madeleine.id,
-        quantitySold: 11,
-        saleDate: fiveDaysAgo,
-        userId: user.id,
-      },
-      {
-        dishId: rhubarbe.id,
-        quantitySold: 8,
-        saleDate: fiveDaysAgo,
-        userId: user.id,
-      },
-      // Six days ago
-      {
-        dishId: quasiVeau.id,
-        quantitySold: 7,
-        saleDate: sixDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: gambas.id,
-        quantitySold: 10,
-        saleDate: sixDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: escargots.id,
-        quantitySold: 12,
-        saleDate: sixDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: carpaccioVeau.id,
-        quantitySold: 9,
-        saleDate: sixDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: chocolatXoco.id,
-        quantitySold: 16,
-        saleDate: sixDaysAgo,
-        userId: admin.id,
-      },
-      {
-        dishId: milleFeuille.id,
-        quantitySold: 14,
-        saleDate: sixDaysAgo,
-        userId: admin.id,
-      },
-      // One week ago
-      {
-        dishId: poularde.id,
-        quantitySold: 15,
-        saleDate: oneWeekAgo,
-        notes: 'Service complet',
-        userId: user.id,
-      },
-      {
-        dishId: epauleAgneau.id,
-        quantitySold: 11,
-        saleDate: oneWeekAgo,
-        userId: user.id,
-      },
-      {
-        dishId: foieGras.id,
-        quantitySold: 10,
-        saleDate: oneWeekAgo,
-        userId: user.id,
-      },
-      {
-        dishId: laMer.id,
-        quantitySold: 12,
-        saleDate: oneWeekAgo,
-        userId: user.id,
-      },
-      {
-        dishId: fromages.id,
-        quantitySold: 8,
-        saleDate: oneWeekAgo,
-        userId: user.id,
-      },
-      {
-        dishId: gourmand.id,
-        quantitySold: 11,
-        saleDate: oneWeekAgo,
-        userId: user.id,
-      },
-      {
-        dishId: primeursFrages.id,
-        quantitySold: 13,
-        saleDate: oneWeekAgo,
-        userId: user.id,
-      },
-    ],
+    data: salesData,
   });
 
-  console.log('✅ Created 56 sales records over 7 days\n');
+  console.log(`✅ Created ${salesData.length} sales records over 21 days\n`);
 
   // ============================================================================
   // DLC (Best Before Dates)
@@ -2022,14 +1851,14 @@ async function main() {
         notes: 'À retirer du stock',
       },
       {
-        productId: productMap['Filet de bœuf'].id,
+        productId: productMap['Onglet de bœuf'].id,
         expirationDate: futureDate1,
         quantity: 8,
         unit: Unit.KG,
         batchNumber: 'BEF-2025-012',
         supplierId: rungis.id,
         status: DLCStatus.ACTIVE,
-        notes: 'Viande premium',
+        notes: 'Viande premium - onglet',
       },
       {
         productId: productMap['Tomates'].id,
@@ -2113,10 +1942,10 @@ async function main() {
   console.log('     - Les Jardins du Marais');
   console.log('     - Épicerie Centrale');
   console.log('');
-  console.log(`  📦 Base Products: ${products.length}`);
+  console.log(`  📦 Base Products: ${products.length + 1}`); // +1 for Onglet de bœuf
   console.log('     - Produits laitiers: 4 (Lait, Crème, Beurre, Œufs)');
   console.log('     - Épicerie sèche: 3 (Farine, Sucre, Sel)');
-  console.log('     - Viandes: 4 (Poulet, Canard, Bœuf, Veau)');
+  console.log('     - Viandes: 5 (Poulet, Canard, Filet de bœuf, Onglet de bœuf, Veau)');
   console.log('     - Poissons: 4 (Saumon, Bar, Daurade, Gambas)');
   console.log('     - Légumes: 4 (Pommes de terre, Carottes, Oignons, Tomates)');
   console.log('     - Herbes: 2 (Persil, Thym)');
@@ -2129,6 +1958,7 @@ async function main() {
   console.log('     - 6 Entrées (La mer, Carpaccio veau, Tarte végétarienne, etc.)');
   console.log('     - 8 Plats (Daurade, Gambas, Onglet de bœuf, etc.)');
   console.log('     - 7 Desserts (Rhubarbe, Mille-feuille, Chocolat Xoco, etc.)');
+  console.log('     - ✅ Fixed ingredient inconsistencies');
   console.log('');
   console.log('  📋 Menus: 2');
   console.log('     - Menu Canaille (49€) - 3 courses');
@@ -2136,10 +1966,16 @@ async function main() {
   console.log('');
   console.log('  📄 Bills: 5 (with stock movements)');
   console.log('     - Total amount: 2,997.30€');
+  console.log(`     - Bills dated: last 8 days`);
   console.log('');
-  console.log('  💰 Sales: 56 records (over 7 days)');
-  console.log('     - Detailed sales data for all dishes');
-  console.log('     - Average ~8 sales per day');
+  console.log(`  📊 Stock Movements: ${additionalMovements.length + 15} total`);
+  console.log('     - 15 from bill deliveries');
+  console.log(`     - ${additionalMovements.length} from daily operations (last 10 days)`);
+  console.log('');
+  console.log(`  💰 Sales: ${salesData.length} records (over 21 days)`);
+  console.log('     - Comprehensive sales data for all dishes');
+  console.log('     - Realistic patterns with weekend boosts');
+  console.log('     - Average ~200+ sales per week');
   console.log('');
   console.log('  📅 DLC Records: 6');
   console.log('     - 5 active batches');

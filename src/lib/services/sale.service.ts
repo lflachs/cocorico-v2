@@ -355,6 +355,6 @@ export async function getTodaysSalesSummary(): Promise<{
   return {
     totalSales,
     totalQuantity,
-    topDishes: summary.slice(0, 5),
+    topDishes: summary, // Return ALL dishes with sales, not just top 5
   };
 }

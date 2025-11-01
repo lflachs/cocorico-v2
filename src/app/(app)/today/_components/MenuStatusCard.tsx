@@ -80,20 +80,20 @@ export function MenuStatusCard({ menuStatus }: MenuStatusCardProps) {
                   {menuStatus.dishCapacities.slice(0, 5).map((dish) => (
                     <div
                       key={dish.dishId}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/50"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-sm font-medium text-foreground line-clamp-2 break-words">
                           {dish.dishName}
                         </p>
                         {dish.limitingIngredient && dish.maxPortions < 100 && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {t('today.menu.limitedBy') || 'Limited by'}: {dish.limitingIngredient.toLowerCase()}
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {t('today.menu.limitedBy') || 'Limité par'}: {dish.limitingIngredient.toLowerCase()}
                           </p>
                         )}
                       </div>
-                      <div className="ml-3 text-right shrink-0">
-                        <p className={`text-lg font-bold ${
+                      <div className="text-right shrink-0 min-w-[60px]">
+                        <p className={`text-lg font-bold whitespace-nowrap ${
                           dish.maxPortions < 10
                             ? 'text-orange-600 dark:text-orange-400'
                             : dish.maxPortions < 30
@@ -102,7 +102,7 @@ export function MenuStatusCard({ menuStatus }: MenuStatusCardProps) {
                         }`}>
                           {dish.maxPortions > 999 ? '999+' : dish.maxPortions}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground whitespace-nowrap">
                           {t('today.menu.portions') || 'portions'}
                         </p>
                       </div>

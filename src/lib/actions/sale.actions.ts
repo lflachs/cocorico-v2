@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
 import * as saleService from '@/lib/services/sale.service';
 import {
   createSaleSchema,
@@ -107,6 +107,7 @@ export async function deleteSaleAction(id: string) {
  * Get today's sales
  */
 export async function getTodaysSalesAction(query?: TodaysSalesQuery) {
+  noStore(); // Prevent caching for real-time sales data
   try {
     const sales = await saleService.getTodaysSales(query);
     return { success: true, data: sales };
@@ -157,8 +158,10 @@ export async function getTopSellingDishesAction(
 
 /**
  * Get today's sales summary
+ * Note: noStore() prevents caching for real-time data
  */
 export async function getTodaysSalesSummaryAction() {
+  noStore(); // Prevent caching - we need fresh data after each sale
   try {
     const summary = await saleService.getTodaysSalesSummary();
     return { success: true, data: summary };

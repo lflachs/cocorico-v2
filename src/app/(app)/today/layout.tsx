@@ -15,14 +15,15 @@ type TodayLayoutProps = {
 export default function TodayLayout({ children, stats, alerts, activities }: TodayLayoutProps) {
   return (
     <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
-      {/* Main content */}
+      {/* Main content - includes DailyBrief and primary cards */}
       {children}
 
-      {/* Parallel route slots */}
-      <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
+      {/* Additional activities (Quick Sales) in flexible grid */}
+      {/* This will adapt to fill available space */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+        {activities}
         {stats}
         {alerts}
-        {activities}
       </div>
     </div>
   );
